@@ -21,7 +21,7 @@ const ToastPortal = forwardRef(
           if (prevToasts.length < 3) {
             return [...prevToasts, { ...toast, id: uuid() }];
           } else {
-            return [...prevToasts]
+            return [...prevToasts];
           }
         });
       },
@@ -38,6 +38,8 @@ const ToastPortal = forwardRef(
               variant={t.variant}
               content={t.content}
               heading={t.heading}
+              animation={t.animation}
+              position={t.position}
               color={t.color}
               onClose={() => removeToast(t.id)}
             ></Toast>

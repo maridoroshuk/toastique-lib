@@ -1,6 +1,7 @@
 import { TOASTS } from "constants/variants";
 import styled from "styled-components";
 
+
 export const Container = styled.div`
   width: 20rem;
   position: relative;
@@ -19,7 +20,6 @@ export const Container = styled.div`
   box-shadow: 0px 0px 2px rgb(69, 69, 69);
 
   transition: 0.2s;
-  animation: fadeIn 0.75s;
 
   &:hover {
     transition: 0.2s;
@@ -27,19 +27,7 @@ export const Container = styled.div`
     box-shadow: 0px 0px 3px gray;
   }
 
-  background-color: ${({ variant, color }) => {
-    if (color) {
-      return color;
-    } else if (variant === TOASTS.INFO) {
-      return "#9f86c0";
-    } else if (variant === TOASTS.WARNING) {
-      return "#fee440";
-    } else if (variant === TOASTS.ERROR) {
-      return "#d62828";
-    } else if (variant === TOASTS.SUCCESS) {
-      return "#57cc99";
-    }
-  }};
+  background-color: ${({ color }) => color};
 `;
 
 export const Icon = styled.img`

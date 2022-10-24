@@ -1,14 +1,30 @@
 import ToastPortal from "components/ToastPortal/ToastPortal";
+import { ANIMATION, animations } from "constants/animation";
 import { AUTO_CLOSE, auto_close_time } from "constants/auto-close-time";
 import { POSITION, positions } from "constants/position";
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
 import Button from "../components/Button/Button";
 import { TOASTS, variants } from "../constants/variants";
 
 export default {
   title: "Toast",
   component: Button,
+
   argTypes: {
+    color: {
+      description: "Color",
+      control: {
+        type: "color",
+      },
+    },
+    animation: {
+      description: "Toast position",
+      default: ANIMATION.TOP_BOTTOM,
+      options: animations,
+      control: {
+        type: "radio",
+      },
+    },
     autoCloseTime: {
       description: "Toast position",
       default: AUTO_CLOSE["5s"],
@@ -38,12 +54,19 @@ export default {
 };
 
 const Template = args => {
-  const { variant, content, heading, color } = args;
+  const { variant, content, heading, color, animation, position } = args;
   const toastRef = useRef();
 
-  const handleShowToastClick = useCallback(() => {
-    toastRef.current.addToast({ variant, content, heading, color });
-  }, [variant]);
+  const handleShowToastClick = () => {
+    toastRef.current.addToast({
+      variant,
+      content,
+      heading,
+      color,
+      animation,
+      position
+    });
+  };
 
   return (
     <>
@@ -58,7 +81,7 @@ Default.args = {
   variant: TOASTS.INFO,
   position: POSITION.TOP,
   autoCloseTime: AUTO_CLOSE["5s"],
+  animation: ANIMATION.TOP_BOTTOM,
   heading: "",
   content: "",
-  color: "#9f86c0",
 };
