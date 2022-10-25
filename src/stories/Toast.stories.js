@@ -19,7 +19,7 @@ export default {
     },
     animation: {
       description: "Toast position",
-      default: ANIMATION.TOP_BOTTOM,
+      default: ANIMATION.BOTTOM,
       options: animations,
       control: {
         type: "radio",
@@ -27,7 +27,7 @@ export default {
     },
     autoCloseTime: {
       description: "Toast position",
-      default: AUTO_CLOSE["5s"],
+      default: AUTO_CLOSE["5"],
       options: auto_close_time,
       control: {
         type: "radio",
@@ -80,8 +80,8 @@ export const Default = Template.bind({});
 Default.args = {
   variant: TOASTS.INFO,
   position: POSITION.TOP,
-  autoCloseTime: AUTO_CLOSE["5s"],
-  animation: ANIMATION.TOP_BOTTOM,
+  autoCloseTime: AUTO_CLOSE["5"],
+  animation: ANIMATION.BOTTOM,
   heading: "",
   content: "",
 };
