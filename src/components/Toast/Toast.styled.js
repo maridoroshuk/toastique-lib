@@ -1,33 +1,20 @@
 import { TOASTS } from "constants/variants";
 import styled from "styled-components";
 
-
 export const Container = styled.div`
   width: 20rem;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-
   padding: 0.5rem 1rem;
   color: ${({ variant }) =>
     variant === TOASTS.WARNING ? "black" : "white"};
-  font-family: sans-serif;
-
-  border: none;
-  border-radius: 0.3rem;
-  box-sizing: border-box;
-  box-shadow: 0px 0px 2px rgb(69, 69, 69);
-
-  transition: 0.2s;
-
-  &:hover {
-    transition: 0.2s;
-    transform: scale(0.95);
-    box-shadow: 0px 0px 3px gray;
-  }
-
   background-color: ${({ color }) => color};
+  border-radius: 1rem;
+  box-sizing: border-box;
+  transition: 0.2s;
+  font-family: sans-serif;
 `;
 
 export const Icon = styled.img`
@@ -41,7 +28,7 @@ export const Close = styled.button`
   background-color: transparent;
   border: none;
   position: absolute;
-  top: 0.4rem;
+  top: 0.5rem;
   right: 0.3rem;
   cursor: pointer;
 `;
