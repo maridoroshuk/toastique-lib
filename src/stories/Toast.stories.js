@@ -54,18 +54,10 @@ export default {
 };
 
 const Template = args => {
-  const { variant, content, heading, color, animation, position } = args;
   const toastRef = useRef();
 
   const handleShowToastClick = () => {
-    toastRef.current.addToast({
-      variant,
-      content,
-      heading,
-      color,
-      animation,
-      position
-    });
+    toastRef.current.addToast(args);
   };
 
   return (
