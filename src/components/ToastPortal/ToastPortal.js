@@ -1,10 +1,13 @@
+import { forwardRef, useImperativeHandle, useState } from "react";
+import { createPortal } from "react-dom";
+import PropTypes from "prop-types";
+import { Container } from "./ToastPortal.styled";
 import { uuid } from "components/shared/helpers";
 import Toast from "components/Toast/Toast";
 import useToastAutoClose from "hooks/useToastAutoClose";
 import useToastPortal from "hooks/useToastPortal";
-import { forwardRef, useImperativeHandle, useState } from "react";
-import { createPortal } from "react-dom";
-import { Container } from "./ToastPortal.styled";
+
+
 
 const ToastPortal = forwardRef(
   ({ autoCloseTime = 5000, position = "top" }, ref) => {
@@ -35,12 +38,7 @@ const ToastPortal = forwardRef(
           {toasts.map(t => (
             <Toast
               key={t.id}
-              variant={t.variant}
-              content={t.content}
-              heading={t.heading}
-              animation={t.animation}
-              position={t.position}
-              color={t.color}
+              toast={t}
               onClose={() => removeToast(t.id)}
             ></Toast>
           ))}
@@ -52,5 +50,10 @@ const ToastPortal = forwardRef(
     );
   },
 );
+
+ToastPortal.propTypes = {
+  autoCloseTime: PropTypes.number,
+  position: PropTypes.string
+}
 
 export default ToastPortal;
