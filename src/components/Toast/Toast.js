@@ -9,25 +9,17 @@ import {
   Heading,
   Icon,
 } from "./Toast.styled";
-import { TOASTS, variants } from "constants/variants";
-import INFO from "../../assets/info.png";
-import WARNING from "../../assets/warning.png";
-import ERROR from "../../assets/error.png";
-import SUCCESS from "../../assets/success.png";
-import CloseIcon from "../../assets/close.png";
-import { animated, useSpring } from "react-spring";
+import { TOASTS } from "constants/variants";
 import { ANIMATION } from "constants/animation";
-import { POSITION } from "constants/position";
+import INFO from "assets/info.png";
+import WARNING from "assets/warning.png";
+import ERROR from "assets/error.png";
+import SUCCESS from "assets/success.png";
+import CloseIcon from "assets/close.png";
 
-const Toast = ({
-  variant,
-  onClose,
-  content,
-  heading,
-  color,
-  animation,
-  position
-}) => {
+const Toast = ({ toast, onClose }) => {
+  const { variant, content, heading, color, animation } = toast;
+
   const getDefaultToast = variant => {
     switch (variant) {
       case TOASTS.INFO:
@@ -96,9 +88,8 @@ const Toast = ({
 };
 
 Toast.propTypes = {
-  variant: PropTypes.oneOf(variants),
+  toast: PropTypes.object,
   onClose: PropTypes.func,
-  body: PropTypes.string,
 };
 
 export default Toast;
