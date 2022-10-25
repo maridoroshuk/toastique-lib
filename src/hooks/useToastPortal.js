@@ -9,11 +9,13 @@ const useToastPortal = position => {
     const div = document.createElement("div");
 
     div.id = portalId;
-    div.style.position = "fixed";
-    div.style.right = "0.5rem";
-    div.style.zIndex = 1000;
-    div.style.top = position === "top" ? "0.5rem" : null
-    div.style.bottom = position === "bottom" ? "0.5rem" : null
+    div.style.cssText = `
+      position: fixed;
+      right: 0.5rem;
+      z-index: 1000;
+      top: ${position === "top" ? "0.5rem" : null};
+      bottom: ${position === "bottom" ? "0.5rem" : null}
+    `;
 
     document.getElementsByTagName("body")[0].prepend(div);
 
