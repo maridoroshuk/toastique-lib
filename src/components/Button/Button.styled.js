@@ -11,6 +11,7 @@ export const Container = styled.div`
 
 export const StyledButton = styled.button`
   background-color: transparent;
+  border: 0.2rem solid #8ecae6;
   border-radius: 20rem;
   position: absolute;
   top: 50%; right: 50%;
@@ -19,4 +20,9 @@ export const StyledButton = styled.button`
   margin: 0 auto;
   font-size:  1.2rem;
   letter-spacing: 0.2rem;
+  cursor: pointer;
+
+  &:hover {
+    background-color:  #8ecae6;
+  }
 `;
