@@ -1,10 +1,10 @@
+import { useRef } from "react";
 import ToastPortal from "components/ToastPortal/ToastPortal";
+import Button from "components/Button/Button";
 import { ANIMATION, animations } from "constants/animation";
 import { AUTO_CLOSE, auto_close_time } from "constants/auto-close-time";
 import { POSITION, positions } from "constants/position";
-import { useRef } from "react";
-import Button from "../components/Button/Button";
-import { TOASTS, variants } from "../constants/variants";
+import { TOASTS, variants } from "constants/variants";
 
 export default {
   title: "Toast",
