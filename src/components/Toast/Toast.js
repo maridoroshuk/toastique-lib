@@ -1,4 +1,5 @@
 import PropTypes from "prop-types";
+import { animated, useSpring } from "react-spring";
 import {
   Body,
   Close,
@@ -64,15 +65,14 @@ const Toast = ({
 
   const defaultToast = getDefaultToast(variant);
 
-  console.log(animation);
   const styles = useSpring({
     from: {
-      y: animation === ANIMATION.TOP_BOTTOM && position === POSITION.TOP ? -500 : 100,
-      x: animation === ANIMATION.RIGHT_SIDE ? 500 : null,
+      y: animation === ANIMATION.BOTTOM ? 1000 : 0,
+      x: animation === ANIMATION.RIGHT_SIDE ? 500 : 0,
     },
     to: {
-      y: animation === ANIMATION.TOP_BOTTOM && position === POSITION.TOP ? 0 : 0,
-      x: animation === ANIMATION.RIGHT_SIDE ? 0 : null,
+      y: 0,
+      x: 0,
     },
   });
 
