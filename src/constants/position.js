@@ -1,6 +1,6 @@
 export const POSITION = {
-    TOP: "top",
-    BOTTOM: "bottom",
-}
+  TOP: 'top',
+  BOTTOM: 'bottom',
+};
 
-export const positions = [POSITION.TOP, POSITION.BOTTOM]
+export const positions = [POSITION.TOP, POSITION.BOTTOM];

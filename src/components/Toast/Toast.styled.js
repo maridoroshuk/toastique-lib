@@ -1,5 +1,5 @@
-import { TOASTS } from "constants/variants";
-import styled from "styled-components";
+import styled from 'styled-components';
+import { TOASTS } from '@/constants/variants';
 
 export const Container = styled.div`
   width: 20rem;
@@ -8,8 +8,7 @@ export const Container = styled.div`
   align-items: center;
   justify-content: flex-start;
   padding: 0.5rem 1rem;
-  color: ${({ variant }) =>
-    variant === TOASTS.WARNING ? "black" : "white"};
+  color: ${({ variant }) => (variant === TOASTS.WARNING ? 'black' : 'white')};
   background-color: ${({ color }) => color};
   border-radius: 1rem;
   box-sizing: border-box;

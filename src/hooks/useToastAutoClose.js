@@ -1,17 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-const useToastAutoClose = (toasts, setToasts, autoCloseTime) => {
-  const [removing, setRemoving] = useState("");
+const useToastAutoClose = (
+  toasts,
+  setToasts,
+  autoCloseTime,
+) => {
+  const [removing, setRemoving] = useState('');
 
   useEffect(() => {
     if (removing) {
-      setToasts(t => t.filter(_t => _t.id !== removing));
+      setToasts((t) => t.filter((_t) => _t.id !== removing));
     }
   }, [removing, setToasts]);
 
   useEffect(() => {
     if (toasts.length) {
-      const id = toasts[toasts.length - 1].id;
+      const { id } = toasts[toasts.length - 1];
       setTimeout(() => setRemoving(id), autoCloseTime);
     }
   }, [toasts, autoCloseTime]);
