@@ -1,8 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import React, { useRef } from 'react';
 import Button from '@/components/Button/Button';
-import ToastPortal from '@/components/ToastPortal/ToastPortal';
-import Error from '@/components/Error/Error';
+import Toastique from '@/components/Basic/Toastique';
 import { ANIMATION, animations } from '@/constants/animation';
 import { AUTO_CLOSE, autoCloseTime } from '@/constants/auto-close-time';
 import { POSITION, positions } from '@/constants/position';
@@ -55,22 +53,7 @@ export default {
   },
 };
 
-function Template(args) {
-  const toastRef = useRef();
-
-  const handleShowToastClick = () => {
-    toastRef.current.addToast(args);
-  };
-
-  return (
-    <Error>
-      <ToastPortal ref={toastRef} {...args} />
-      <Button onClick={() => handleShowToastClick()} />
-    </Error>
-  );
-}
-
-export const Default = Template.bind({});
+export const Default = Toastique.bind({});
 Default.args = {
   variant: TOASTS.INFO,
   position: POSITION.TOP,
