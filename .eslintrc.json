@@ -16,5 +16,17 @@
   "env": {
     "browser": true,
     "node": true
+  },
+
+  "globals": {
+    "cy": false,
+    "Cypress": false,
+    "describe": false,
+    "context": false,
+    "beforeEach": false,
+    "afterEach": false,
+    "it": false,
+    "assert": false,
+    "expect": false
   }
 }
