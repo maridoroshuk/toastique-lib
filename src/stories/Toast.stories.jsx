@@ -1,10 +1,17 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import Button from '@/components/Button/Button';
 import Toastique from '@/components/Basic/Toastique';
-import { ANIMATION, animations } from '@/constants/animation';
-import { AUTO_CLOSE, autoCloseTime } from '@/constants/auto-close-time';
+import {
+  ANIMATION,
+  animations,
+} from '@/constants/animation';
+import {
+  AUTO_CLOSE,
+  autoCloseTime,
+} from '@/constants/auto-close-time';
 import { POSITION, positions } from '@/constants/position';
 import { TOASTS, variants } from '@/constants/variants';
+import { GAP, gaps } from '@/constants/gap';
 
 export default {
   title: 'Toast',
@@ -15,6 +22,14 @@ export default {
       description: 'Color',
       control: {
         type: 'color',
+      },
+    },
+    gap: {
+      description: 'Gap between toasts',
+      default: GAP.MEDIUM,
+      options: gaps,
+      control: {
+        type: 'radio',
       },
     },
     animation: {
@@ -59,6 +74,7 @@ Default.args = {
   position: POSITION.TOP,
   autoCloseTime: AUTO_CLOSE['5'],
   animation: ANIMATION.BOTTOM,
+  gap: GAP.MEDIUM,
   heading: '',
   content: '',
 };

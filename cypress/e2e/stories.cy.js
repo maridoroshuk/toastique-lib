@@ -3,10 +3,6 @@ describe('Stories', () => {
     cy.visit('http://localhost:6006/');
   });
 
-  it('should have controls bar', () => {
-    cy.get('#tabbutton-controls-7').should('exist');
-  });
-
   it('should have variant panel', () => {
     cy.contains('variant').should('exist');
     cy.get('[for="control-variant-0"]').should(
@@ -67,6 +63,22 @@ describe('Stories', () => {
     );
   });
 
+  it('should have gap panel ', () => {
+    cy.contains('gap').should('exist');
+    cy.get('[for="control-gap-0"]').should(
+      'have.text',
+      'small',
+    );
+    cy.get('[for="control-gap-1"]').should(
+      'have.text',
+      'medium',
+    );
+    cy.get('[for="control-gap-2"]').should(
+      'have.text',
+      'large',
+    );
+  });
+
   it('should have heading panel ', () => {
     cy.contains('heading').should('exist');
     cy.get('#control-heading').should('exist');
@@ -102,6 +114,10 @@ describe('Make a custom success toast ', () => {
 
   it('should have from right side animation', () => {
     cy.get('#control-animation-1').check();
+  });
+
+  it('should have large gap', () => {
+    cy.get('#control-gap-2').check();
   });
 
   it('should have custom heading', () => {

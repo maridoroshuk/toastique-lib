@@ -25,6 +25,7 @@ function Toast({ toast, onClose }) {
     heading,
     color,
     animation,
+    gap,
   } = toast;
 
   const getDefaultToast = (toastVariant) => {
@@ -40,24 +41,21 @@ function Toast({ toast, onClose }) {
         return {
           icon: WARNING,
           heading: heading || 'Warning toast',
-          content:
-            content || 'Warning toast description',
+          content: content || 'Warning toast description',
           color: color || '#fee440',
         };
       case TOASTS.ERROR:
         return {
           icon: ERROR,
           heading: heading || 'Error toast',
-          content:
-            content || 'Error toast description',
+          content: content || 'Error toast description',
           color: color || '#d62828',
         };
       case TOASTS.SUCCESS:
         return {
           icon: SUCCESS,
           heading: heading || 'Success toast',
-          content:
-            content || 'Success toast description',
+          content: content || 'Success toast description',
           color: color || '#57cc99',
         };
       default:
@@ -84,6 +82,7 @@ function Toast({ toast, onClose }) {
       as={animated.div}
       color={defaultToast.color}
       variant={variant}
+      gap={gap}
     >
       <Icon src={defaultToast.icon} />
       <Body>
@@ -104,6 +103,7 @@ Toast.propTypes = {
     heading: PropTypes.string,
     color: PropTypes.string,
     animation: PropTypes.string,
+    gap: PropTypes.string,
   }.isRequired,
   onClose: PropTypes.func.isRequired,
 };
