@@ -12,3 +12,18 @@
 - show toast notification
 - customize position, type, duration, gap between toasts, text, color, animation
 
+## Available Scripts
+
+In the project directory, you can run:
+
+```bash
+npm run sb
+```
+
+Runs the app in the development mode.
+
+```bash
+npm run cypress:test
+```
+
+Launches the test runner in the interactive watch mode.
