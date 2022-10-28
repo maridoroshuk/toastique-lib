@@ -23,11 +23,8 @@
     "react-dom": "^18.2.0"
   },
   "scripts": {
-    "start": "react-scripts start",
     "build": "rollup -c",
-    "test": "react-scripts test",
     "cypress:test": "cypress open run",
-    "eject": "react-scripts eject",
     "sb": "start-storybook -p 6006 -s public",
     "build-storybook": "build-storybook -s public",
     "lint": "./node_modules/.bin/eslint"
