@@ -6,9 +6,9 @@ import React, {
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import Toast from '@/components/Toast/Toast';
-import uuid from '@/shared/helpers';
 import useToastAutoClose from '@/hooks/useToastAutoClose';
 import useToastPortal from '@/hooks/useToastPortal';
+import uuid from '@/shared/helpers';
 import { Container } from './ToastPortal.styled';
 
 const ToastPortal = forwardRef(

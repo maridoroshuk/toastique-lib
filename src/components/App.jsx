@@ -4,7 +4,7 @@ import Button from '@/components/Button/Button';
 import ToastPortal from '@/components/ToastPortal/ToastPortal';
 import Error from '@/components/Error/Error';
 
-function Toastique(args) {
+function App(args) {
   const toastRef = useRef();
 
   const handleShowToastClick = () => {
@@ -19,4 +19,4 @@ function Toastique(args) {
   );
 }
 
-export default Toastique;
+export default App;

@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import Button from '@/components/Button/Button';
-import Toastique from '@/components/Basic/Toastique';
+import App from '@/components/App';
 import {
   ANIMATION,
   animations,
@@ -68,7 +68,7 @@ export default {
   },
 };
 
-export const Default = Toastique.bind({});
+export const Default = App.bind({});
 Default.args = {
   variant: TOASTS.INFO,
   position: POSITION.TOP,
