@@ -19,4 +19,5 @@ export default {
     },
   ],
   plugins: [peerDepsExternal(), resolve(), commonjs()],
+  external: ['./components/App']
 };

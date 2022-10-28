@@ -1,4 +1,4 @@
-import Toastique from '@/components/Basic/Toastique';
+import App from './components/App';
 
 // eslint-disable-next-line import/prefer-default-export
-export { Toastique };
+export { App };
