@@ -1,5 +1,6 @@
 import React, {
   forwardRef,
+  useContext,
   useImperativeHandle,
   useState,
 } from 'react';
@@ -8,37 +9,33 @@ import PropTypes from 'prop-types';
 import Toast from '@/components/Toast/Toast';
 import useToastAutoClose from '@/hooks/useToastAutoClose';
 import useToastPortal from '@/hooks/useToastPortal';
-import uuid from '@/shared/helpers';
 import { Container } from './ToastPortal.styled';
+import { ToastContext } from '../../context/store';
 
 const ToastPortal = forwardRef(
   ({ autoCloseTime, position }, ref) => {
+    const toastSingletone = useContext(ToastContext);
     const [toasts, setToasts] = useState([]);
     const { loaded, portalId } = useToastPortal(position);
 
     const removeToast = (id) => {
-      setToasts(toasts.filter((t) => t.id !== id));
+      toastSingletone.removeToast(id);
+      setToasts(toastSingletone.getToasts());
     };
 
     useImperativeHandle(ref, () => ({
-
       addToast(toast) {
-        setToasts((prevToasts) => {
-          if (prevToasts.length < 3) {
-            return [
-              ...prevToasts,
-              { ...toast, id: uuid() },
-            ];
-          }
-          return [...prevToasts];
-        });
+        toastSingletone.addToast(
+          toastSingletone.generateToast(toast),
+        );
+        setToasts(toastSingletone.getToasts());
       },
     }));
 
     useToastAutoClose(toasts, setToasts, autoCloseTime);
 
-    return loaded ? (
-      createPortal(
+    return loaded
+      ? createPortal(
         <Container>
           {toasts.map((t) => (
             <Toast
@@ -50,7 +47,7 @@ const ToastPortal = forwardRef(
         </Container>,
         document.getElementById(portalId),
       )
-    ) : null;
+      : null;
   },
 );
 

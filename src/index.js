@@ -1,4 +1,4 @@
-import App from './components/App';
+/* eslint-disable import/prefer-default-export */
+import ToastConteiner from './components/ToastContainer';
 
-// eslint-disable-next-line import/prefer-default-export
-export { App };
+export { ToastConteiner };

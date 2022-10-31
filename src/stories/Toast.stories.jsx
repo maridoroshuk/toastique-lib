@@ -1,6 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import Button from '@/components/Button/Button';
-import App from '@/components/App';
+
 import {
   ANIMATION,
   animations,
@@ -12,6 +12,7 @@ import {
 import { POSITION, positions } from '@/constants/position';
 import { TOASTS, variants } from '@/constants/variants';
 import { GAP, gaps } from '@/constants/gap';
+import ToastConteiner from '@/components/ToastConteiner';
 
 export default {
   title: 'Toast',
@@ -68,7 +69,7 @@ export default {
   },
 };
 
-export const Default = App.bind({});
+export const Default = ToastConteiner.bind({});
 Default.args = {
   variant: TOASTS.INFO,
   position: POSITION.TOP,

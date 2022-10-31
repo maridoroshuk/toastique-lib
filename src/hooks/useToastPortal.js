@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import uuid from '@/shared/helpers';
 
 const useToastPortal = (position) => {
   const [loaded, setLoaded] = useState(false);
   const [portalId] = useState(`toast-portal-${uuid()}`);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const div = document.createElement('div');
 
     div.id = portalId;

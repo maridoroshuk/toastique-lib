@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Container } from './Error.styled';
+import { Container } from './ErrorBoundary.styled';
 
-class Error extends React.Component {
+class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false };
@@ -23,11 +23,11 @@ class Error extends React.Component {
   }
 }
 
-Error.propTypes = {
+ErrorBoundary.propTypes = {
   children: PropTypes.PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node,
   ]).isRequired,
 };
 
-export default Error;
+export default ErrorBoundary;
