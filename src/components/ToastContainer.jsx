@@ -5,10 +5,11 @@ import ToastPortal from '@/components/ToastPortal/ToastPortal';
 import ErrorBoundary from '@/components/ErrorBoundary/ErrorBoundary';
 import { ToastProvider } from '@/context/store';
 
-function ToastConteiner({ ...args }) {
+function ToastContainer({ ...args }) {
   const toastRef = useRef();
   const handleShowToastClick = () => {
     toastRef.current.addToast(args);
+    toastRef.current.getToasts();
   };
 
   return (
@@ -21,4 +22,4 @@ function ToastConteiner({ ...args }) {
   );
 }
 
-export default ToastConteiner;
+export default ToastContainer;

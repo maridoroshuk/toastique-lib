@@ -28,6 +28,8 @@ const ToastPortal = forwardRef(
         toastSingletone.addToast(
           toastSingletone.generateToast(toast),
         );
+      },
+      getToasts() {
         setToasts(toastSingletone.getToasts());
       },
     }));
