@@ -1,27 +1,21 @@
-import { useContext, useLayoutEffect, useState } from 'react';
-import { ToastContext } from '../context/store';
+import { useEffect, useState } from 'react';
+import toastSingletone from '../utils/toast-singletone';
 
-const useToastAutoClose = (
-  toasts,
-  setToasts,
-  autoCloseTime,
-) => {
+const useToastAutoClose = (toasts, autoCloseTime) => {
   const [removing, setRemoving] = useState('');
-  const toastSingletone = useContext(ToastContext);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (removing) {
       toastSingletone.removeToast(removing);
-      setToasts(toastSingletone.getToasts());
     }
-  }, [removing, setToasts]);
+  }, [removing]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (toasts.length) {
       const { id } = toasts[toasts.length - 1];
       setTimeout(() => setRemoving(id), autoCloseTime);
     }
-  }, [toasts, autoCloseTime]);
+  });
 };
 
 export default useToastAutoClose;
