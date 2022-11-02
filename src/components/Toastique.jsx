@@ -5,7 +5,7 @@ import ToastPortal from '@/components/ToastPortal/ToastPortal';
 import ErrorBoundary from '@/components/ErrorBoundary/ErrorBoundary';
 import toastSingletone from '../utils/toast-singletone';
 
-function ToastContainer({ ...args }) {
+function Toastique({ ...args }) {
   const toastRef = useRef();
 
   useLayoutEffect(() => {
@@ -24,4 +24,4 @@ function ToastContainer({ ...args }) {
   );
 }
 
-export default ToastContainer;
+export default Toastique;

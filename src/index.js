@@ -1,4 +1,4 @@
 /* eslint-disable import/prefer-default-export */
-import ToastConteiner from './components/ToastContainer';
+import Toastique from './components/Toastique';
 
-export { ToastConteiner };
+export { Toastique };
