@@ -12,7 +12,7 @@ import {
 import { POSITION, positions } from '@/constants/position';
 import { TOASTS, variants } from '@/constants/variants';
 import { GAP, gaps } from '@/constants/gap';
-import Toastique from '@/components/Toastique';
+import toast from '../components/ToastSingletone/ToastSingletone';
 
 export default {
   title: 'Toast',
@@ -69,7 +69,7 @@ export default {
   },
 };
 
-export const Default = Toastique.bind({});
+export const Default = (args) => toast.getToast(args);
 Default.args = {
   variant: TOASTS.INFO,
   position: POSITION.TOP,
