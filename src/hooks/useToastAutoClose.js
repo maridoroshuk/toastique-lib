@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import toastSingletone from '../utils/toast-singletone';
 
-const useToastAutoClose = (toasts, autoCloseTime) => {
+const useToastAutoClose = (
+  toasts,
+  removeToast,
+  autoCloseTime,
+) => {
   const [removing, setRemoving] = useState('');
 
   useEffect(() => {
     if (removing) {
-      toastSingletone.removeToast(removing);
+      removeToast(removing);
     }
   }, [removing]);
 

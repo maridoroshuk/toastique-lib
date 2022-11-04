@@ -1,25 +1,28 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import React, { useLayoutEffect, useRef } from 'react';
+import React from 'react';
 import Button from '@/components/Button/Button';
 import ToastPortal from '@/components/ToastPortal/ToastPortal';
 import ErrorBoundary from '@/components/ErrorBoundary/ErrorBoundary';
-import toastSingletone from '../utils/toast-singletone';
+// import toastSingletone from '../utils/toast-singletone';
+import toast from './ToastSingletone/ToastSingletone';
 
 function Toastique({ ...args }) {
-  const toastRef = useRef();
+  // const toastRef = useRef();
 
-  useLayoutEffect(() => {
-    toastSingletone.createInstance(toastRef.current);
-  }, []);
+  // useLayoutEffect(() => {
+  //   toastSingletone.createInstance(toastRef.current);
+  // }, []);
 
+  console.log(args);
   const handleShowToastClick = () => {
-    toastRef.current.addToast(args);
+    toast.getToast({ ...args });
+    // toastRef.current.addToast(args);
   };
 
   return (
     <ErrorBoundary>
-      <ToastPortal ref={toastRef} {...args} />
-      <Button onClick={() => handleShowToastClick()} />
+      <ToastPortal />
+      <Button onClick={handleShowToastClick} />
     </ErrorBoundary>
   );
 }

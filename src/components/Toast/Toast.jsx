@@ -1,12 +1,10 @@
+/* eslint-disable import/no-cycle */
+/* eslint-disable react/require-default-props */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { animated, useSpring } from 'react-spring';
-import { TOASTS } from '@/constants/variants';
 import { ANIMATION } from '@/constants/animation';
-import INFO from '@/assets/info.png';
-import WARNING from '@/assets/warning.png';
-import ERROR from '@/assets/error.png';
-import SUCCESS from '@/assets/success.png';
+
 import CloseIcon from '@/assets/close.png';
 import {
   Body,
@@ -20,51 +18,14 @@ import {
 
 function Toast({ toast, onClose }) {
   const {
+    animation,
     variant,
+    color,
     content,
     heading,
-    color,
-    animation,
     gap,
+    icon,
   } = toast;
-
-  const getDefaultToast = (toastVariant) => {
-    switch (toastVariant) {
-      case TOASTS.INFO:
-        return {
-          icon: INFO,
-          heading: heading || 'Info toast',
-          content: content || 'Info toast description',
-          color: color || '#9f86c0',
-        };
-      case TOASTS.WARNING:
-        return {
-          icon: WARNING,
-          heading: heading || 'Warning toast',
-          content: content || 'Warning toast description',
-          color: color || '#fee440',
-        };
-      case TOASTS.ERROR:
-        return {
-          icon: ERROR,
-          heading: heading || 'Error toast',
-          content: content || 'Error toast description',
-          color: color || '#d62828',
-        };
-      case TOASTS.SUCCESS:
-        return {
-          icon: SUCCESS,
-          heading: heading || 'Success toast',
-          content: content || 'Success toast description',
-          color: color || '#57cc99',
-        };
-      default:
-        return {};
-    }
-  };
-
-  const defaultToast = getDefaultToast(variant);
-
   const styles = useSpring({
     from: {
       y: animation === ANIMATION.BOTTOM ? 1000 : 0,
@@ -80,14 +41,14 @@ function Toast({ toast, onClose }) {
     <Container
       style={styles}
       as={animated.div}
-      color={defaultToast.color}
+      color={color}
       variant={variant}
       gap={gap}
     >
-      <Icon src={defaultToast.icon} />
+      <Icon src={icon} />
       <Body>
-        <Heading>{defaultToast.heading}</Heading>
-        <Content>{defaultToast.content}</Content>
+        <Heading>{heading}</Heading>
+        <Content>{content}</Content>
       </Body>
       <Close onClick={onClose}>
         <CloseImg src={CloseIcon} alt="close" />
@@ -97,14 +58,14 @@ function Toast({ toast, onClose }) {
 }
 
 Toast.propTypes = {
-  toast: {
+  toast: PropTypes.arrayOf({
     variant: PropTypes.string,
     content: PropTypes.string,
     heading: PropTypes.string,
     color: PropTypes.string,
     animation: PropTypes.string,
     gap: PropTypes.string,
-  }.isRequired,
+  }).isRequired,
   onClose: PropTypes.func.isRequired,
 };
 
