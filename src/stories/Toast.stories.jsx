@@ -5,7 +5,7 @@ import {
 import {
   AUTO_CLOSE,
   autoCloseTime,
-} from '@/constants/auto-close-time';
+} from '@/constants/autoCloseTime';
 import { POSITION, positions } from '@/constants/position';
 import { TOASTS, variants } from '@/constants/variants';
 import { GAP, gaps } from '@/constants/gap';
