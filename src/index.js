@@ -1,3 +1,3 @@
-import Toastique from './components/Toastique';
+import toast from '@/components/ToastSingletone/ToastSingletone';
 
-export { Toastique };
+export { toast as Toastique };

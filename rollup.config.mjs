@@ -19,5 +19,5 @@ export default {
     },
   ],
   plugins: [peerDepsExternal(), resolve(), commonjs()],
-  external: ['./components/Toastique']
+  external: ['./components/ToastSingletone']
 };
