@@ -1,6 +1,3 @@
-/* eslint-disable import/no-cycle */
-/* eslint-disable react/jsx-props-no-spreading */
-/* eslint-disable class-methods-use-this */
 import React from 'react';
 import uuid from '@/shared/helpers';
 import ToastPortal from '../ToastPortal/ToastPortal';
