@@ -1,5 +1,3 @@
-import Button from '@/components/Button/Button';
-
 import {
   ANIMATION,
   animations,
@@ -11,11 +9,12 @@ import {
 import { POSITION, positions } from '@/constants/position';
 import { TOASTS, variants } from '@/constants/variants';
 import { GAP, gaps } from '@/constants/gap';
-import toast from '../components/ToastSingletone/ToastSingletone';
+import toast from '@/components/ToastSingletone/ToastSingletone';
+import ToastContainer from '@/components/ToastContainer/ToastContainer';
 
 export default {
   title: 'Toast',
-  component: Button,
+  component: ToastContainer,
 
   argTypes: {
     color: {
@@ -24,7 +23,7 @@ export default {
         type: 'color',
       },
     },
-    gap: {
+    'space between toasts': {
       description: 'Gap between toasts',
       default: GAP.MEDIUM,
       options: gaps,
@@ -50,7 +49,7 @@ export default {
     },
     position: {
       description: 'Toast position',
-      default: POSITION.TOP,
+      default: POSITION.TOP_RIGHT,
       options: positions,
       control: {
         type: 'radio',
@@ -71,10 +70,10 @@ export default {
 export const Default = (args) => toast.getToast(args);
 Default.args = {
   variant: TOASTS.INFO,
-  position: POSITION.TOP,
+  position: POSITION.TOP_RIGHT,
   autoCloseTime: AUTO_CLOSE['5'],
   animation: ANIMATION.BOTTOM,
-  gap: GAP.MEDIUM,
+  'space between toasts': GAP.MEDIUM,
   heading: '',
   content: '',
 };
