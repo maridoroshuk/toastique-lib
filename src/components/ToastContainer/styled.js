@@ -1,8 +1,8 @@
-/* eslint-disable import/prefer-default-export */
 import styled from 'styled-components';
+import { spaces } from '@/theme/sizes';
 
 export const Container = styled.div`
-  gap: 0.5rem;
+  gap: ${spaces.xxs};
   display: flex;
   flex-direction: column;
 `;
