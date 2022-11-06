@@ -1,13 +1,13 @@
 import React from 'react';
-import uuid from '@/shared/helpers';
-import ToastPortal from '../ToastPortal/ToastPortal';
-import getDefaultToast from '../../shared/getDefaultToast';
+import { v4 as uuidv4 } from 'uuid';
+import getDefaultToast from '@/shared/getDefaultToast';
+import ToastContainer from '@/components/ToastContainer/ToastContainer';
 
 class ToastSingletone {
   constructor() {
     if (ToastSingletone.instance) {
       throw new Error(
-        'ToastSingletone cannot have more then one instance',
+        'Toast cannot have more then one instance',
       );
     } else {
       ToastSingletone.instance = this;
@@ -21,7 +21,7 @@ class ToastSingletone {
     );
     return {
       ...properties,
-      id: uuid(),
+      id: uuidv4(),
       icon: defaultPeoperties.icon,
       heading:
         properties.heading || defaultPeoperties.heading,
@@ -40,7 +40,7 @@ class ToastSingletone {
     }
 
     return (
-      <ToastPortal {...properties} toasts={this.toasts} />
+      <ToastContainer {...properties} toasts={this.toasts} />
     );
   }
 }
