@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   ANIMATION,
   animations,
@@ -9,7 +10,6 @@ import {
 import { POSITION, positions } from '@/constants/position';
 import { TOASTS, variants } from '@/constants/variants';
 import { GAP, gaps } from '@/constants/gap';
-import toast from '@/components/ToastSingletone/ToastSingletone';
 import ToastContainer from '@/components/ToastContainer/ToastContainer';
 
 export default {
@@ -67,7 +67,9 @@ export default {
   },
 };
 
-export const Default = (args) => toast.getToast(args);
+export function Default(args) {
+  return <ToastContainer {...args} />;
+}
 Default.args = {
   variant: TOASTS.INFO,
   position: POSITION.TOP_RIGHT,
