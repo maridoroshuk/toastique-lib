@@ -1,3 +1,3 @@
-import toast from '@/components/ToastSingletone/ToastSingletone';
+import useToastique from '@/hooks/useToastique';
 
-export { toast as Toastique };
+export { useToastique };

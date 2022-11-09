@@ -21,8 +21,8 @@ const ToastPortal = forwardRef(
     };
 
     useImperativeHandle(ref, () => ({
-      addToasts(args) {
-        setToastList(toast.getToasts(args));
+      addToasts(variant, args) {
+        setToastList(toast.getToasts(variant, args));
       },
     }));
 

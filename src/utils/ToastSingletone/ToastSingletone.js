@@ -13,10 +13,8 @@ class ToastSingletone {
     }
   }
 
-  getToastProperties(properties) {
-    const defaultPeoperties = getDefaultToast(
-      properties.variant,
-    );
+  getToastProperties(variant, properties) {
+    const defaultPeoperties = getDefaultToast(variant);
     return {
       ...properties,
       id: uuidv4(),
@@ -34,11 +32,11 @@ class ToastSingletone {
     return this.toasts;
   }
 
-  getToasts(properties) {
+  getToasts(variant, properties) {
     if (this.toasts.length < 3) {
       this.toasts = [
         ...this.toasts,
-        this.getToastProperties(properties),
+        this.getToastProperties(variant, properties),
       ];
     }
 
