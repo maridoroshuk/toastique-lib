@@ -19,5 +19,5 @@ export default {
     },
   ],
   plugins: [peerDepsExternal(), resolve(), commonjs()],
-  external: [/@babel\/runtime/, 'react', 'styled-components']
+  external: ['./src/components/ToastContainer/ToastContainer']
 };

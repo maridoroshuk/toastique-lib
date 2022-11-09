@@ -1,3 +1,3 @@
-import useToastique from '@/hooks/useToastique';
+import ToastContainer from '@/components/ToastContainer/ToastContainer';
 
-export { useToastique };
+export { ToastContainer as Toastique };
