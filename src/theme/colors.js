@@ -2,6 +2,7 @@ const colors = {
   white: '#fffff',
   black: '#eeeee',
   transparent: 'transparent',
+  blue: '#8ecae6',
 };
 
 const toastColors = {
@@ -9,6 +10,7 @@ const toastColors = {
   yellow: '#fee440',
   tomato: '#d62828',
   green: '#57cc99',
+
 };
 
 export { colors, toastColors };
