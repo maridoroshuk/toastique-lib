@@ -1,7 +1,5 @@
-import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import getDefaultToast from '@/shared/getDefaultToast';
-import ToastContainer from '@/components/ToastContainer/ToastContainer';
 
 class ToastSingletone {
   constructor() {
@@ -31,7 +29,12 @@ class ToastSingletone {
     };
   }
 
-  getToast(properties) {
+  removeToast(id) {
+    this.toasts = this.toasts.filter((t) => t.id !== id);
+    return this.toasts;
+  }
+
+  getToasts(properties) {
     if (this.toasts.length < 3) {
       this.toasts = [
         ...this.toasts,
@@ -39,9 +42,7 @@ class ToastSingletone {
       ];
     }
 
-    return (
-      <ToastContainer {...properties} toasts={this.toasts} />
-    );
+    return this.toasts;
   }
 }
 
