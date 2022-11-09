@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import ErrorBoundary from '@/components/ErrorBoundary/ErrorBoundary';
 import Button from '@/components/Button/Button';
@@ -6,6 +6,10 @@ import ToastPortal from '@/components/ToastPoartal/ToastPortal';
 
 function ToastContainer({ config, ...args }) {
   const toastRef = useRef();
+
+  useLayoutEffect(() => {
+    toastRef.current.addToasts(config, args);
+  }, []);
 
   const handleShowToastClick = (variant, properties) => {
     toastRef.current.addToasts(variant, properties);
