@@ -1,10 +1,12 @@
 {
   "name": "q-toastique",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "private": false,
   "dependencies": {
     "@babel/preset-env": "^7.20.2",
     "@babel/preset-react": "^7.18.6",
+    "@rollup/plugin-commonjs": "^23.0.2",
+    "@rollup/plugin-node-resolve": "^15.0.1",
     "@storybook/testing-react": "^1.3.0",
     "@testing-library/cypress": "^8.0.3",
     "@testing-library/jest-dom": "^5.16.5",
@@ -18,6 +20,10 @@
     "react-require": "^1.0.1",
     "react-scripts": "5.0.1",
     "react-spring": "^9.5.5",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-strip-prop-types": "^1.0.3",
+    "rollup-plugin-typescript2": "^0.34.1",
     "styled-components": "^5.3.6",
     "tsconfig-paths-webpack-plugin": "^4.0.0",
     "uuid": "^9.0.0",
@@ -69,8 +75,7 @@
   "author": "Maryna Darashuk <m.doroshuk@bk.ru>",
   "license": "MIT",
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^23.0.2",
-    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@babel/plugin-syntax-import-assertions": "^7.20.0",
     "@storybook/addon-actions": "^6.5.12",
     "@storybook/addon-essentials": "^6.5.12",
     "@storybook/addon-interactions": "^6.5.12",
@@ -94,16 +99,12 @@
     "eslint-plugin-react": "^7.28.0",
     "eslint-plugin-react-hooks": "^4.3.0",
     "postcss": "^8.4.18",
-    "rollup": "^3.2.3",
-    "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-postcss": "^4.0.2",
-    "rollup-plugin-typescript2": "^0.34.1",
+    "rollup": "^3.2.5",
     "webpack": "^5.74.0"
   },
   "description": "<h1 align=\"center\">TOASTIQUE</h1> <br>",
   "directories": {
-    "doc": "docs",
-    "lib": "lib"
+    "doc": "docs"
   },
   "repository": {
     "type": "git",

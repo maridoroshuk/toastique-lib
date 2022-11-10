@@ -1,4 +1,7 @@
 {
-    "presets": ["@babel/preset-env", "@babel/preset-react"],
-    "plugins": ["react-require"]
-  }
+  "presets": ["@babel/preset-env", "@babel/preset-react"],
+  "plugins": [
+    "react-require",
+    "@babel/plugin-syntax-import-assertions"
+  ]
+}
