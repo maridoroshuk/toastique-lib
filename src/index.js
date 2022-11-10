@@ -1,3 +1,5 @@
-import ToastContainer from '@/components/ToastContainer/ToastContainer';
+import ToastList from './components/ToastList/ToastList';
+import toast from './utils/ToastSingletone/ToastSingletone';
 
-export { ToastContainer as Toastique };
+export { ToastList };
+export { toast };

@@ -29,4 +29,4 @@ ToastContainer.propTypes = {
   config: PropTypes.string.isRequired,
 };
 
-export default ToastContainer;
+export default React.memo(ToastContainer);
