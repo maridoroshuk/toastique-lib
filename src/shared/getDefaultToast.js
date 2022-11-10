@@ -2,8 +2,8 @@ import INFO from '@/assets/info.png';
 import WARNING from '@/assets/warning.png';
 import ERROR from '@/assets/error.png';
 import SUCCESS from '@/assets/success.png';
-import { toastColors } from '../theme/colors';
-import { TOASTS } from '../constants/variants';
+import { TOASTS } from '@/constants/variants';
+import { toastColors } from '@/theme/colors';
 
 const getDefaultToast = (toastVariant) => {
   switch (toastVariant) {
