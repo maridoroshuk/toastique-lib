@@ -59,14 +59,17 @@ function Toast({ toast, onCloseToastClick }) {
 }
 
 Toast.propTypes = {
-  toast: PropTypes.arrayOf({
-    id: PropTypes.string,
-    variant: PropTypes.string,
-    content: PropTypes.string,
-    heading: PropTypes.string,
-    color: PropTypes.string,
+  toast: PropTypes.shape({
     animation: PropTypes.string,
-    gap: PropTypes.string,
+    autoCloseTime: PropTypes.number,
+    color: PropTypes.string,
+    content: PropTypes.string,
+    'space between toasts': PropTypes.string,
+    heading: PropTypes.string,
+    icon: PropTypes.string,
+    id: PropTypes.string,
+    position: PropTypes.string,
+    variant: PropTypes.string,
   }).isRequired,
   onCloseToastClick: PropTypes.func.isRequired,
 };

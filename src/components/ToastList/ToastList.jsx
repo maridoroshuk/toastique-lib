@@ -48,7 +48,7 @@ const toastsPropsType = PropTypes.shape({
   autoCloseTime: PropTypes.number,
   color: PropTypes.string,
   content: PropTypes.string,
-  gap: PropTypes.string,
+  'space between toasts': PropTypes.string,
   heading: PropTypes.string,
   icon: PropTypes.string,
   id: PropTypes.string,
