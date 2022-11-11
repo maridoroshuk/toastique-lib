@@ -1,29 +1,34 @@
-<h1 align="center">TOASTIQUE</h1>
-<br>
+# [toastique-toast](https://www.npmjs.com/package/toastique-toast)
 
-<div  align="center">
-  <img width="200" src="https://user-images.githubusercontent.com/59647513/198524739-d8ea41df-fb6d-4254-81d7-0977cf7d2984.gif"/>
-</div>
+### You can try the [demo here](https://toastique.netlify.app/?path=/story/toast--default).
 
-<p align="center"><a href="https://toastique.netlify.app/?path=/story/toast--default">TOASTIQUE</a> is a Javascript library to show non-blocking notifications</p>
+## Installation
 
-## Key Features
-
-- show toast notification
-- customize position, type, duration, gap between toasts, text, color, animation
-
-## Available Scripts
-
-In the project directory, you can run:
-
-```bash
-npm run sb
+```
+$ npm install --save toastique-toast
+$ yarn add toastique-toast
 ```
 
-Runs the app in the development mode.
 
-```bash
-npm run cypress:test
+## The gist
+
+```jsx
+  import React from 'react';
+
+  import { ToastList , toast } from 'toastique-toast';
+  
+  function App(){
+  const properties = {
+    heading: 'Error!',
+    content: 'Text message failed to send',
+}
+    const toasts = toast.getToasts('error', properties);
+
+    return (
+      <div>
+        <button onClick={notify}>Notify !</button>
+        <ToastContainer toastList={toasts} properties={properties}/>
+      </div>
+    );
+  }
 ```
-
-Launches the test runner in the interactive watch mode.
