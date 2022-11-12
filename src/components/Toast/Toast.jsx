@@ -74,4 +74,4 @@ Toast.propTypes = {
   onCloseToastClick: PropTypes.func.isRequired,
 };
 
-export default Toast;
+export default React.memo(Toast);
