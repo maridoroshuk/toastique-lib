@@ -24,6 +24,14 @@ class ToastSingletone {
       content:
         properties.content || defaultPeoperties.content,
       color: properties.color || defaultPeoperties.color,
+      position:
+        properties.position || defaultPeoperties.position,
+      autoCloseTime:
+        properties.autoCloseTime || defaultPeoperties.autoCloseTime,
+      animation:
+        properties.animation || defaultPeoperties.color,
+      'space between toasts':
+        properties['space between toasts'] || defaultPeoperties['space between toasts'],
     };
   }
 
