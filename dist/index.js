@@ -1,26 +1,8 @@
 'use strict';
 
-var React = require('react');
+var r = require('react');
 var reactDom = require('react-dom');
-
-function _interopNamespaceDefault(e) {
-  var n = Object.create(null);
-  if (e) {
-    Object.keys(e).forEach(function (k) {
-      if (k !== 'default') {
-        var d = Object.getOwnPropertyDescriptor(e, k);
-        Object.defineProperty(n, k, d.get ? d : {
-          enumerable: true,
-          get: function () { return e[k]; }
-        });
-      }
-    });
-  }
-  n.default = e;
-  return Object.freeze(n);
-}
-
-var React__namespace = /*#__PURE__*/_interopNamespaceDefault(React);
+var reactSpring = require('react-spring');
 
 function ownKeys(object, enumerableOnly) {
   var keys = Object.keys(object);
@@ -147,3701 +129,6 @@ function _nonIterableRest() {
   throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
 
-let updateQueue = makeQueue();
-const raf = fn => schedule(fn, updateQueue);
-let writeQueue = makeQueue();
-
-raf.write = fn => schedule(fn, writeQueue);
-
-let onStartQueue = makeQueue();
-
-raf.onStart = fn => schedule(fn, onStartQueue);
-
-let onFrameQueue = makeQueue();
-
-raf.onFrame = fn => schedule(fn, onFrameQueue);
-
-let onFinishQueue = makeQueue();
-
-raf.onFinish = fn => schedule(fn, onFinishQueue);
-
-let timeouts = [];
-
-raf.setTimeout = (handler, ms) => {
-  let time = raf.now() + ms;
-
-  let cancel = () => {
-    let i = timeouts.findIndex(t => t.cancel == cancel);
-    if (~i) timeouts.splice(i, 1);
-    pendingCount -= ~i ? 1 : 0;
-  };
-
-  let timeout = {
-    time,
-    handler,
-    cancel
-  };
-  timeouts.splice(findTimeout(time), 0, timeout);
-  pendingCount += 1;
-  start();
-  return timeout;
-};
-
-let findTimeout = time => ~(~timeouts.findIndex(t => t.time > time) || ~timeouts.length);
-
-raf.cancel = fn => {
-  onStartQueue.delete(fn);
-  onFrameQueue.delete(fn);
-  onFinishQueue.delete(fn);
-  updateQueue.delete(fn);
-  writeQueue.delete(fn);
-};
-
-raf.sync = fn => {
-  sync = true;
-  raf.batchedUpdates(fn);
-  sync = false;
-};
-
-raf.throttle = fn => {
-  let lastArgs;
-
-  function queuedFn() {
-    try {
-      fn(...lastArgs);
-    } finally {
-      lastArgs = null;
-    }
-  }
-
-  function throttled(...args) {
-    lastArgs = args;
-    raf.onStart(queuedFn);
-  }
-
-  throttled.handler = fn;
-
-  throttled.cancel = () => {
-    onStartQueue.delete(queuedFn);
-    lastArgs = null;
-  };
-
-  return throttled;
-};
-
-let nativeRaf = typeof window != 'undefined' ? window.requestAnimationFrame : () => {};
-
-raf.use = impl => nativeRaf = impl;
-
-raf.now = typeof performance != 'undefined' ? () => performance.now() : Date.now;
-
-raf.batchedUpdates = fn => fn();
-
-raf.catch = console.error;
-raf.frameLoop = 'always';
-
-raf.advance = () => {
-  if (raf.frameLoop !== 'demand') {
-    console.warn('Cannot call the manual advancement of rafz whilst frameLoop is not set as demand');
-  } else {
-    update();
-  }
-};
-
-let ts = -1;
-let pendingCount = 0;
-let sync = false;
-
-function schedule(fn, queue) {
-  if (sync) {
-    queue.delete(fn);
-    fn(0);
-  } else {
-    queue.add(fn);
-    start();
-  }
-}
-
-function start() {
-  if (ts < 0) {
-    ts = 0;
-
-    if (raf.frameLoop !== 'demand') {
-      nativeRaf(loop);
-    }
-  }
-}
-
-function stop() {
-  ts = -1;
-}
-
-function loop() {
-  if (~ts) {
-    nativeRaf(loop);
-    raf.batchedUpdates(update);
-  }
-}
-
-function update() {
-  let prevTs = ts;
-  ts = raf.now();
-  let count = findTimeout(ts);
-
-  if (count) {
-    eachSafely(timeouts.splice(0, count), t => t.handler());
-    pendingCount -= count;
-  }
-
-  if (!pendingCount) {
-    stop();
-    return;
-  }
-
-  onStartQueue.flush();
-  updateQueue.flush(prevTs ? Math.min(64, ts - prevTs) : 16.667);
-  onFrameQueue.flush();
-  writeQueue.flush();
-  onFinishQueue.flush();
-}
-
-function makeQueue() {
-  let next = new Set();
-  let current = next;
-  return {
-    add(fn) {
-      pendingCount += current == next && !next.has(fn) ? 1 : 0;
-      next.add(fn);
-    },
-
-    delete(fn) {
-      pendingCount -= current == next && next.has(fn) ? 1 : 0;
-      return next.delete(fn);
-    },
-
-    flush(arg) {
-      if (current.size) {
-        next = new Set();
-        pendingCount -= current.size;
-        eachSafely(current, fn => fn(arg) && next.add(fn));
-        pendingCount += next.size;
-        current = next;
-      }
-    }
-
-  };
-}
-
-function eachSafely(values, each) {
-  values.forEach(value => {
-    try {
-      each(value);
-    } catch (e) {
-      raf.catch(e);
-    }
-  });
-}
-
-function noop() {}
-const defineHidden = (obj, key, value) => Object.defineProperty(obj, key, {
-  value,
-  writable: true,
-  configurable: true
-});
-const is = {
-  arr: Array.isArray,
-  obj: a => !!a && a.constructor.name === 'Object',
-  fun: a => typeof a === 'function',
-  str: a => typeof a === 'string',
-  num: a => typeof a === 'number',
-  und: a => a === undefined
-};
-function isEqual(a, b) {
-  if (is.arr(a)) {
-    if (!is.arr(b) || a.length !== b.length) return false;
-
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) return false;
-    }
-
-    return true;
-  }
-
-  return a === b;
-}
-const each = (obj, fn) => obj.forEach(fn);
-function eachProp(obj, fn, ctx) {
-  if (is.arr(obj)) {
-    for (let i = 0; i < obj.length; i++) {
-      fn.call(ctx, obj[i], `${i}`);
-    }
-
-    return;
-  }
-
-  for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      fn.call(ctx, obj[key], key);
-    }
-  }
-}
-const toArray = a => is.und(a) ? [] : is.arr(a) ? a : [a];
-function flush(queue, iterator) {
-  if (queue.size) {
-    const items = Array.from(queue);
-    queue.clear();
-    each(items, iterator);
-  }
-}
-const flushCalls = (queue, ...args) => flush(queue, fn => fn(...args));
-const isSSR = () => typeof window === 'undefined' || !window.navigator || /ServerSideRendering|^Deno\//.test(window.navigator.userAgent);
-
-let createStringInterpolator$1;
-let to;
-let colors$1 = null;
-let skipAnimation = false;
-let willAdvance = noop;
-const assign = globals => {
-  if (globals.to) to = globals.to;
-  if (globals.now) raf.now = globals.now;
-  if (globals.colors !== undefined) colors$1 = globals.colors;
-  if (globals.skipAnimation != null) skipAnimation = globals.skipAnimation;
-  if (globals.createStringInterpolator) createStringInterpolator$1 = globals.createStringInterpolator;
-  if (globals.requestAnimationFrame) raf.use(globals.requestAnimationFrame);
-  if (globals.batchedUpdates) raf.batchedUpdates = globals.batchedUpdates;
-  if (globals.willAdvance) willAdvance = globals.willAdvance;
-  if (globals.frameLoop) raf.frameLoop = globals.frameLoop;
-};
-
-var globals = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  get createStringInterpolator () { return createStringInterpolator$1; },
-  get to () { return to; },
-  get colors () { return colors$1; },
-  get skipAnimation () { return skipAnimation; },
-  get willAdvance () { return willAdvance; },
-  assign: assign
-});
-
-const startQueue = new Set();
-let currentFrame = [];
-let prevFrame = [];
-let priority = 0;
-const frameLoop = {
-  get idle() {
-    return !startQueue.size && !currentFrame.length;
-  },
-
-  start(animation) {
-    if (priority > animation.priority) {
-      startQueue.add(animation);
-      raf.onStart(flushStartQueue);
-    } else {
-      startSafely(animation);
-      raf(advance);
-    }
-  },
-
-  advance,
-
-  sort(animation) {
-    if (priority) {
-      raf.onFrame(() => frameLoop.sort(animation));
-    } else {
-      const prevIndex = currentFrame.indexOf(animation);
-
-      if (~prevIndex) {
-        currentFrame.splice(prevIndex, 1);
-        startUnsafely(animation);
-      }
-    }
-  },
-
-  clear() {
-    currentFrame = [];
-    startQueue.clear();
-  }
-
-};
-
-function flushStartQueue() {
-  startQueue.forEach(startSafely);
-  startQueue.clear();
-  raf(advance);
-}
-
-function startSafely(animation) {
-  if (!currentFrame.includes(animation)) startUnsafely(animation);
-}
-
-function startUnsafely(animation) {
-  currentFrame.splice(findIndex(currentFrame, other => other.priority > animation.priority), 0, animation);
-}
-
-function advance(dt) {
-  const nextFrame = prevFrame;
-
-  for (let i = 0; i < currentFrame.length; i++) {
-    const animation = currentFrame[i];
-    priority = animation.priority;
-
-    if (!animation.idle) {
-      willAdvance(animation);
-      animation.advance(dt);
-
-      if (!animation.idle) {
-        nextFrame.push(animation);
-      }
-    }
-  }
-
-  priority = 0;
-  prevFrame = currentFrame;
-  prevFrame.length = 0;
-  currentFrame = nextFrame;
-  return currentFrame.length > 0;
-}
-
-function findIndex(arr, test) {
-  const index = arr.findIndex(test);
-  return index < 0 ? arr.length : index;
-}
-
-const colors$2 = {
-  transparent: 0x00000000,
-  aliceblue: 0xf0f8ffff,
-  antiquewhite: 0xfaebd7ff,
-  aqua: 0x00ffffff,
-  aquamarine: 0x7fffd4ff,
-  azure: 0xf0ffffff,
-  beige: 0xf5f5dcff,
-  bisque: 0xffe4c4ff,
-  black: 0x000000ff,
-  blanchedalmond: 0xffebcdff,
-  blue: 0x0000ffff,
-  blueviolet: 0x8a2be2ff,
-  brown: 0xa52a2aff,
-  burlywood: 0xdeb887ff,
-  burntsienna: 0xea7e5dff,
-  cadetblue: 0x5f9ea0ff,
-  chartreuse: 0x7fff00ff,
-  chocolate: 0xd2691eff,
-  coral: 0xff7f50ff,
-  cornflowerblue: 0x6495edff,
-  cornsilk: 0xfff8dcff,
-  crimson: 0xdc143cff,
-  cyan: 0x00ffffff,
-  darkblue: 0x00008bff,
-  darkcyan: 0x008b8bff,
-  darkgoldenrod: 0xb8860bff,
-  darkgray: 0xa9a9a9ff,
-  darkgreen: 0x006400ff,
-  darkgrey: 0xa9a9a9ff,
-  darkkhaki: 0xbdb76bff,
-  darkmagenta: 0x8b008bff,
-  darkolivegreen: 0x556b2fff,
-  darkorange: 0xff8c00ff,
-  darkorchid: 0x9932ccff,
-  darkred: 0x8b0000ff,
-  darksalmon: 0xe9967aff,
-  darkseagreen: 0x8fbc8fff,
-  darkslateblue: 0x483d8bff,
-  darkslategray: 0x2f4f4fff,
-  darkslategrey: 0x2f4f4fff,
-  darkturquoise: 0x00ced1ff,
-  darkviolet: 0x9400d3ff,
-  deeppink: 0xff1493ff,
-  deepskyblue: 0x00bfffff,
-  dimgray: 0x696969ff,
-  dimgrey: 0x696969ff,
-  dodgerblue: 0x1e90ffff,
-  firebrick: 0xb22222ff,
-  floralwhite: 0xfffaf0ff,
-  forestgreen: 0x228b22ff,
-  fuchsia: 0xff00ffff,
-  gainsboro: 0xdcdcdcff,
-  ghostwhite: 0xf8f8ffff,
-  gold: 0xffd700ff,
-  goldenrod: 0xdaa520ff,
-  gray: 0x808080ff,
-  green: 0x008000ff,
-  greenyellow: 0xadff2fff,
-  grey: 0x808080ff,
-  honeydew: 0xf0fff0ff,
-  hotpink: 0xff69b4ff,
-  indianred: 0xcd5c5cff,
-  indigo: 0x4b0082ff,
-  ivory: 0xfffff0ff,
-  khaki: 0xf0e68cff,
-  lavender: 0xe6e6faff,
-  lavenderblush: 0xfff0f5ff,
-  lawngreen: 0x7cfc00ff,
-  lemonchiffon: 0xfffacdff,
-  lightblue: 0xadd8e6ff,
-  lightcoral: 0xf08080ff,
-  lightcyan: 0xe0ffffff,
-  lightgoldenrodyellow: 0xfafad2ff,
-  lightgray: 0xd3d3d3ff,
-  lightgreen: 0x90ee90ff,
-  lightgrey: 0xd3d3d3ff,
-  lightpink: 0xffb6c1ff,
-  lightsalmon: 0xffa07aff,
-  lightseagreen: 0x20b2aaff,
-  lightskyblue: 0x87cefaff,
-  lightslategray: 0x778899ff,
-  lightslategrey: 0x778899ff,
-  lightsteelblue: 0xb0c4deff,
-  lightyellow: 0xffffe0ff,
-  lime: 0x00ff00ff,
-  limegreen: 0x32cd32ff,
-  linen: 0xfaf0e6ff,
-  magenta: 0xff00ffff,
-  maroon: 0x800000ff,
-  mediumaquamarine: 0x66cdaaff,
-  mediumblue: 0x0000cdff,
-  mediumorchid: 0xba55d3ff,
-  mediumpurple: 0x9370dbff,
-  mediumseagreen: 0x3cb371ff,
-  mediumslateblue: 0x7b68eeff,
-  mediumspringgreen: 0x00fa9aff,
-  mediumturquoise: 0x48d1ccff,
-  mediumvioletred: 0xc71585ff,
-  midnightblue: 0x191970ff,
-  mintcream: 0xf5fffaff,
-  mistyrose: 0xffe4e1ff,
-  moccasin: 0xffe4b5ff,
-  navajowhite: 0xffdeadff,
-  navy: 0x000080ff,
-  oldlace: 0xfdf5e6ff,
-  olive: 0x808000ff,
-  olivedrab: 0x6b8e23ff,
-  orange: 0xffa500ff,
-  orangered: 0xff4500ff,
-  orchid: 0xda70d6ff,
-  palegoldenrod: 0xeee8aaff,
-  palegreen: 0x98fb98ff,
-  paleturquoise: 0xafeeeeff,
-  palevioletred: 0xdb7093ff,
-  papayawhip: 0xffefd5ff,
-  peachpuff: 0xffdab9ff,
-  peru: 0xcd853fff,
-  pink: 0xffc0cbff,
-  plum: 0xdda0ddff,
-  powderblue: 0xb0e0e6ff,
-  purple: 0x800080ff,
-  rebeccapurple: 0x663399ff,
-  red: 0xff0000ff,
-  rosybrown: 0xbc8f8fff,
-  royalblue: 0x4169e1ff,
-  saddlebrown: 0x8b4513ff,
-  salmon: 0xfa8072ff,
-  sandybrown: 0xf4a460ff,
-  seagreen: 0x2e8b57ff,
-  seashell: 0xfff5eeff,
-  sienna: 0xa0522dff,
-  silver: 0xc0c0c0ff,
-  skyblue: 0x87ceebff,
-  slateblue: 0x6a5acdff,
-  slategray: 0x708090ff,
-  slategrey: 0x708090ff,
-  snow: 0xfffafaff,
-  springgreen: 0x00ff7fff,
-  steelblue: 0x4682b4ff,
-  tan: 0xd2b48cff,
-  teal: 0x008080ff,
-  thistle: 0xd8bfd8ff,
-  tomato: 0xff6347ff,
-  turquoise: 0x40e0d0ff,
-  violet: 0xee82eeff,
-  wheat: 0xf5deb3ff,
-  white: 0xffffffff,
-  whitesmoke: 0xf5f5f5ff,
-  yellow: 0xffff00ff,
-  yellowgreen: 0x9acd32ff
-};
-
-const NUMBER = '[-+]?\\d*\\.?\\d+';
-const PERCENTAGE = NUMBER + '%';
-
-function call(...parts) {
-  return '\\(\\s*(' + parts.join(')\\s*,\\s*(') + ')\\s*\\)';
-}
-
-const rgb = new RegExp('rgb' + call(NUMBER, NUMBER, NUMBER));
-const rgba = new RegExp('rgba' + call(NUMBER, NUMBER, NUMBER, NUMBER));
-const hsl = new RegExp('hsl' + call(NUMBER, PERCENTAGE, PERCENTAGE));
-const hsla = new RegExp('hsla' + call(NUMBER, PERCENTAGE, PERCENTAGE, NUMBER));
-const hex3 = /^#([0-9a-fA-F]{1})([0-9a-fA-F]{1})([0-9a-fA-F]{1})$/;
-const hex4 = /^#([0-9a-fA-F]{1})([0-9a-fA-F]{1})([0-9a-fA-F]{1})([0-9a-fA-F]{1})$/;
-const hex6 = /^#([0-9a-fA-F]{6})$/;
-const hex8 = /^#([0-9a-fA-F]{8})$/;
-
-function normalizeColor(color) {
-  let match;
-
-  if (typeof color === 'number') {
-    return color >>> 0 === color && color >= 0 && color <= 0xffffffff ? color : null;
-  }
-
-  if (match = hex6.exec(color)) return parseInt(match[1] + 'ff', 16) >>> 0;
-
-  if (colors$1 && colors$1[color] !== undefined) {
-    return colors$1[color];
-  }
-
-  if (match = rgb.exec(color)) {
-    return (parse255(match[1]) << 24 | parse255(match[2]) << 16 | parse255(match[3]) << 8 | 0x000000ff) >>> 0;
-  }
-
-  if (match = rgba.exec(color)) {
-    return (parse255(match[1]) << 24 | parse255(match[2]) << 16 | parse255(match[3]) << 8 | parse1(match[4])) >>> 0;
-  }
-
-  if (match = hex3.exec(color)) {
-    return parseInt(match[1] + match[1] + match[2] + match[2] + match[3] + match[3] + 'ff', 16) >>> 0;
-  }
-
-  if (match = hex8.exec(color)) return parseInt(match[1], 16) >>> 0;
-
-  if (match = hex4.exec(color)) {
-    return parseInt(match[1] + match[1] + match[2] + match[2] + match[3] + match[3] + match[4] + match[4], 16) >>> 0;
-  }
-
-  if (match = hsl.exec(color)) {
-    return (hslToRgb(parse360(match[1]), parsePercentage(match[2]), parsePercentage(match[3])) | 0x000000ff) >>> 0;
-  }
-
-  if (match = hsla.exec(color)) {
-    return (hslToRgb(parse360(match[1]), parsePercentage(match[2]), parsePercentage(match[3])) | parse1(match[4])) >>> 0;
-  }
-
-  return null;
-}
-
-function hue2rgb(p, q, t) {
-  if (t < 0) t += 1;
-  if (t > 1) t -= 1;
-  if (t < 1 / 6) return p + (q - p) * 6 * t;
-  if (t < 1 / 2) return q;
-  if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-  return p;
-}
-
-function hslToRgb(h, s, l) {
-  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-  const p = 2 * l - q;
-  const r = hue2rgb(p, q, h + 1 / 3);
-  const g = hue2rgb(p, q, h);
-  const b = hue2rgb(p, q, h - 1 / 3);
-  return Math.round(r * 255) << 24 | Math.round(g * 255) << 16 | Math.round(b * 255) << 8;
-}
-
-function parse255(str) {
-  const int = parseInt(str, 10);
-  if (int < 0) return 0;
-  if (int > 255) return 255;
-  return int;
-}
-
-function parse360(str) {
-  const int = parseFloat(str);
-  return (int % 360 + 360) % 360 / 360;
-}
-
-function parse1(str) {
-  const num = parseFloat(str);
-  if (num < 0) return 0;
-  if (num > 1) return 255;
-  return Math.round(num * 255);
-}
-
-function parsePercentage(str) {
-  const int = parseFloat(str);
-  if (int < 0) return 0;
-  if (int > 100) return 1;
-  return int / 100;
-}
-
-function colorToRgba(input) {
-  let int32Color = normalizeColor(input);
-  if (int32Color === null) return input;
-  int32Color = int32Color || 0;
-  let r = (int32Color & 0xff000000) >>> 24;
-  let g = (int32Color & 0x00ff0000) >>> 16;
-  let b = (int32Color & 0x0000ff00) >>> 8;
-  let a = (int32Color & 0x000000ff) / 255;
-  return `rgba(${r}, ${g}, ${b}, ${a})`;
-}
-
-const createInterpolator = (range, output, extrapolate) => {
-  if (is.fun(range)) {
-    return range;
-  }
-
-  if (is.arr(range)) {
-    return createInterpolator({
-      range,
-      output: output,
-      extrapolate
-    });
-  }
-
-  if (is.str(range.output[0])) {
-    return createStringInterpolator$1(range);
-  }
-
-  const config = range;
-  const outputRange = config.output;
-  const inputRange = config.range || [0, 1];
-  const extrapolateLeft = config.extrapolateLeft || config.extrapolate || 'extend';
-  const extrapolateRight = config.extrapolateRight || config.extrapolate || 'extend';
-
-  const easing = config.easing || (t => t);
-
-  return input => {
-    const range = findRange(input, inputRange);
-    return interpolate(input, inputRange[range], inputRange[range + 1], outputRange[range], outputRange[range + 1], easing, extrapolateLeft, extrapolateRight, config.map);
-  };
-};
-
-function interpolate(input, inputMin, inputMax, outputMin, outputMax, easing, extrapolateLeft, extrapolateRight, map) {
-  let result = map ? map(input) : input;
-
-  if (result < inputMin) {
-    if (extrapolateLeft === 'identity') return result;else if (extrapolateLeft === 'clamp') result = inputMin;
-  }
-
-  if (result > inputMax) {
-    if (extrapolateRight === 'identity') return result;else if (extrapolateRight === 'clamp') result = inputMax;
-  }
-
-  if (outputMin === outputMax) return outputMin;
-  if (inputMin === inputMax) return input <= inputMin ? outputMin : outputMax;
-  if (inputMin === -Infinity) result = -result;else if (inputMax === Infinity) result = result - inputMin;else result = (result - inputMin) / (inputMax - inputMin);
-  result = easing(result);
-  if (outputMin === -Infinity) result = -result;else if (outputMax === Infinity) result = result + outputMin;else result = result * (outputMax - outputMin) + outputMin;
-  return result;
-}
-
-function findRange(input, inputRange) {
-  for (var i = 1; i < inputRange.length - 1; ++i) if (inputRange[i] >= input) break;
-
-  return i - 1;
-}
-
-function _extends$2() {
-  _extends$2 = Object.assign ? Object.assign.bind() : function (target) {
-    for (var i = 1; i < arguments.length; i++) {
-      var source = arguments[i];
-
-      for (var key in source) {
-        if (Object.prototype.hasOwnProperty.call(source, key)) {
-          target[key] = source[key];
-        }
-      }
-    }
-
-    return target;
-  };
-  return _extends$2.apply(this, arguments);
-}
-
-const $get = Symbol.for('FluidValue.get');
-const $observers = Symbol.for('FluidValue.observers');
-
-const hasFluidValue = arg => Boolean(arg && arg[$get]);
-
-const getFluidValue = arg => arg && arg[$get] ? arg[$get]() : arg;
-
-const getFluidObservers = target => target[$observers] || null;
-
-function callFluidObserver(observer, event) {
-  if (observer.eventObserved) {
-    observer.eventObserved(event);
-  } else {
-    observer(event);
-  }
-}
-
-function callFluidObservers(target, event) {
-  let observers = target[$observers];
-
-  if (observers) {
-    observers.forEach(observer => {
-      callFluidObserver(observer, event);
-    });
-  }
-}
-
-class FluidValue {
-  constructor(get) {
-    this[$get] = void 0;
-    this[$observers] = void 0;
-
-    if (!get && !(get = this.get)) {
-      throw Error('Unknown getter');
-    }
-
-    setFluidGetter(this, get);
-  }
-
-}
-
-const setFluidGetter = (target, get) => setHidden(target, $get, get);
-
-function addFluidObserver(target, observer) {
-  if (target[$get]) {
-    let observers = target[$observers];
-
-    if (!observers) {
-      setHidden(target, $observers, observers = new Set());
-    }
-
-    if (!observers.has(observer)) {
-      observers.add(observer);
-
-      if (target.observerAdded) {
-        target.observerAdded(observers.size, observer);
-      }
-    }
-  }
-
-  return observer;
-}
-
-function removeFluidObserver(target, observer) {
-  let observers = target[$observers];
-
-  if (observers && observers.has(observer)) {
-    const count = observers.size - 1;
-
-    if (count) {
-      observers.delete(observer);
-    } else {
-      target[$observers] = null;
-    }
-
-    if (target.observerRemoved) {
-      target.observerRemoved(count, observer);
-    }
-  }
-}
-
-const setHidden = (target, key, value) => Object.defineProperty(target, key, {
-  value,
-  writable: true,
-  configurable: true
-});
-
-const numberRegex = /[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)?/g;
-const colorRegex = /(#(?:[0-9a-f]{2}){2,4}|(#[0-9a-f]{3})|(rgb|hsl)a?\((-?\d+%?[,\s]+){2,3}\s*[\d\.]+%?\))/gi;
-const unitRegex = new RegExp(`(${numberRegex.source})(%|[a-z]+)`, 'i');
-const rgbaRegex = /rgba\(([0-9\.-]+), ([0-9\.-]+), ([0-9\.-]+), ([0-9\.-]+)\)/gi;
-const cssVariableRegex = /var\((--[a-zA-Z0-9-_]+),? ?([a-zA-Z0-9 ()%#.,-]+)?\)/;
-
-const variableToRgba = input => {
-  const [token, fallback] = parseCSSVariable(input);
-
-  if (!token || isSSR()) {
-    return input;
-  }
-
-  const value = window.getComputedStyle(document.documentElement).getPropertyValue(token);
-
-  if (value) {
-    return value.trim();
-  } else if (fallback && fallback.startsWith('--')) {
-    const _value = window.getComputedStyle(document.documentElement).getPropertyValue(fallback);
-
-    if (_value) {
-      return _value;
-    } else {
-      return input;
-    }
-  } else if (fallback && cssVariableRegex.test(fallback)) {
-    return variableToRgba(fallback);
-  } else if (fallback) {
-    return fallback;
-  }
-
-  return input;
-};
-
-const parseCSSVariable = current => {
-  const match = cssVariableRegex.exec(current);
-  if (!match) return [,];
-  const [, token, fallback] = match;
-  return [token, fallback];
-};
-
-let namedColorRegex;
-
-const rgbaRound = (_, p1, p2, p3, p4) => `rgba(${Math.round(p1)}, ${Math.round(p2)}, ${Math.round(p3)}, ${p4})`;
-
-const createStringInterpolator = config => {
-  if (!namedColorRegex) namedColorRegex = colors$1 ? new RegExp(`(${Object.keys(colors$1).join('|')})(?!\\w)`, 'g') : /^\b$/;
-  const output = config.output.map(value => {
-    return getFluidValue(value).replace(cssVariableRegex, variableToRgba).replace(colorRegex, colorToRgba).replace(namedColorRegex, colorToRgba);
-  });
-  const keyframes = output.map(value => value.match(numberRegex).map(Number));
-  const outputRanges = keyframes[0].map((_, i) => keyframes.map(values => {
-    if (!(i in values)) {
-      throw Error('The arity of each "output" value must be equal');
-    }
-
-    return values[i];
-  }));
-  const interpolators = outputRanges.map(output => createInterpolator(_extends$2({}, config, {
-    output
-  })));
-  return input => {
-    var _output$find;
-
-    const missingUnit = !unitRegex.test(output[0]) && ((_output$find = output.find(value => unitRegex.test(value))) == null ? void 0 : _output$find.replace(numberRegex, ''));
-    let i = 0;
-    return output[0].replace(numberRegex, () => `${interpolators[i++](input)}${missingUnit || ''}`).replace(rgbaRegex, rgbaRound);
-  };
-};
-
-const prefix = 'react-spring: ';
-
-const once = fn => {
-  const func = fn;
-  let called = false;
-
-  if (typeof func != 'function') {
-    throw new TypeError(`${prefix}once requires a function parameter`);
-  }
-
-  return (...args) => {
-    if (!called) {
-      func(...args);
-      called = true;
-    }
-  };
-};
-
-const warnInterpolate = once(console.warn);
-function deprecateInterpolate() {
-  warnInterpolate(`${prefix}The "interpolate" function is deprecated in v9 (use "to" instead)`);
-}
-const warnDirectCall = once(console.warn);
-function deprecateDirectCall() {
-  warnDirectCall(`${prefix}Directly calling start instead of using the api object is deprecated in v9 (use ".start" instead), this will be removed in later 0.X.0 versions`);
-}
-
-function isAnimatedString(value) {
-  return is.str(value) && (value[0] == '#' || /\d/.test(value) || !isSSR() && cssVariableRegex.test(value) || value in (colors$1 || {}));
-}
-
-const useIsomorphicLayoutEffect = isSSR() ? React.useEffect : React.useLayoutEffect;
-
-const useIsMounted = () => {
-  const isMounted = React.useRef(false);
-  useIsomorphicLayoutEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-  return isMounted;
-};
-
-function useForceUpdate() {
-  const update = React.useState()[1];
-  const isMounted = useIsMounted();
-  return () => {
-    if (isMounted.current) {
-      update(Math.random());
-    }
-  };
-}
-
-function useMemoOne(getResult, inputs) {
-  const [initial] = React.useState(() => ({
-    inputs,
-    result: getResult()
-  }));
-  const committed = React.useRef();
-  const prevCache = committed.current;
-  let cache = prevCache;
-
-  if (cache) {
-    const useCache = Boolean(inputs && cache.inputs && areInputsEqual(inputs, cache.inputs));
-
-    if (!useCache) {
-      cache = {
-        inputs,
-        result: getResult()
-      };
-    }
-  } else {
-    cache = initial;
-  }
-
-  React.useEffect(() => {
-    committed.current = cache;
-
-    if (prevCache == initial) {
-      initial.inputs = initial.result = undefined;
-    }
-  }, [cache]);
-  return cache.result;
-}
-
-function areInputsEqual(next, prev) {
-  if (next.length !== prev.length) {
-    return false;
-  }
-
-  for (let i = 0; i < next.length; i++) {
-    if (next[i] !== prev[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-const useOnce = effect => React.useEffect(effect, emptyDeps);
-const emptyDeps = [];
-
-function usePrev(value) {
-  const prevRef = React.useRef();
-  React.useEffect(() => {
-    prevRef.current = value;
-  });
-  return prevRef.current;
-}
-
-const $node = Symbol.for('Animated:node');
-const isAnimated = value => !!value && value[$node] === value;
-const getAnimated = owner => owner && owner[$node];
-const setAnimated = (owner, node) => defineHidden(owner, $node, node);
-const getPayload = owner => owner && owner[$node] && owner[$node].getPayload();
-class Animated {
-  constructor() {
-    this.payload = void 0;
-    setAnimated(this, this);
-  }
-
-  getPayload() {
-    return this.payload || [];
-  }
-
-}
-
-class AnimatedValue extends Animated {
-  constructor(_value) {
-    super();
-    this.done = true;
-    this.elapsedTime = void 0;
-    this.lastPosition = void 0;
-    this.lastVelocity = void 0;
-    this.v0 = void 0;
-    this.durationProgress = 0;
-    this._value = _value;
-
-    if (is.num(this._value)) {
-      this.lastPosition = this._value;
-    }
-  }
-
-  static create(value) {
-    return new AnimatedValue(value);
-  }
-
-  getPayload() {
-    return [this];
-  }
-
-  getValue() {
-    return this._value;
-  }
-
-  setValue(value, step) {
-    if (is.num(value)) {
-      this.lastPosition = value;
-
-      if (step) {
-        value = Math.round(value / step) * step;
-
-        if (this.done) {
-          this.lastPosition = value;
-        }
-      }
-    }
-
-    if (this._value === value) {
-      return false;
-    }
-
-    this._value = value;
-    return true;
-  }
-
-  reset() {
-    const {
-      done
-    } = this;
-    this.done = false;
-
-    if (is.num(this._value)) {
-      this.elapsedTime = 0;
-      this.durationProgress = 0;
-      this.lastPosition = this._value;
-      if (done) this.lastVelocity = null;
-      this.v0 = null;
-    }
-  }
-
-}
-
-class AnimatedString extends AnimatedValue {
-  constructor(value) {
-    super(0);
-    this._string = null;
-    this._toString = void 0;
-    this._toString = createInterpolator({
-      output: [value, value]
-    });
-  }
-
-  static create(value) {
-    return new AnimatedString(value);
-  }
-
-  getValue() {
-    let value = this._string;
-    return value == null ? this._string = this._toString(this._value) : value;
-  }
-
-  setValue(value) {
-    if (is.str(value)) {
-      if (value == this._string) {
-        return false;
-      }
-
-      this._string = value;
-      this._value = 1;
-    } else if (super.setValue(value)) {
-      this._string = null;
-    } else {
-      return false;
-    }
-
-    return true;
-  }
-
-  reset(goal) {
-    if (goal) {
-      this._toString = createInterpolator({
-        output: [this.getValue(), goal]
-      });
-    }
-
-    this._value = 0;
-    super.reset();
-  }
-
-}
-
-const TreeContext = {
-  dependencies: null
-};
-
-class AnimatedObject extends Animated {
-  constructor(source) {
-    super();
-    this.source = source;
-    this.setValue(source);
-  }
-
-  getValue(animated) {
-    const values = {};
-    eachProp(this.source, (source, key) => {
-      if (isAnimated(source)) {
-        values[key] = source.getValue(animated);
-      } else if (hasFluidValue(source)) {
-        values[key] = getFluidValue(source);
-      } else if (!animated) {
-        values[key] = source;
-      }
-    });
-    return values;
-  }
-
-  setValue(source) {
-    this.source = source;
-    this.payload = this._makePayload(source);
-  }
-
-  reset() {
-    if (this.payload) {
-      each(this.payload, node => node.reset());
-    }
-  }
-
-  _makePayload(source) {
-    if (source) {
-      const payload = new Set();
-      eachProp(source, this._addToPayload, payload);
-      return Array.from(payload);
-    }
-  }
-
-  _addToPayload(source) {
-    if (TreeContext.dependencies && hasFluidValue(source)) {
-      TreeContext.dependencies.add(source);
-    }
-
-    const payload = getPayload(source);
-
-    if (payload) {
-      each(payload, node => this.add(node));
-    }
-  }
-
-}
-
-class AnimatedArray extends AnimatedObject {
-  constructor(source) {
-    super(source);
-  }
-
-  static create(source) {
-    return new AnimatedArray(source);
-  }
-
-  getValue() {
-    return this.source.map(node => node.getValue());
-  }
-
-  setValue(source) {
-    const payload = this.getPayload();
-
-    if (source.length == payload.length) {
-      return payload.map((node, i) => node.setValue(source[i])).some(Boolean);
-    }
-
-    super.setValue(source.map(makeAnimated));
-    return true;
-  }
-
-}
-
-function makeAnimated(value) {
-  const nodeType = isAnimatedString(value) ? AnimatedString : AnimatedValue;
-  return nodeType.create(value);
-}
-
-function getAnimatedType(value) {
-  const parentNode = getAnimated(value);
-  return parentNode ? parentNode.constructor : is.arr(value) ? AnimatedArray : isAnimatedString(value) ? AnimatedString : AnimatedValue;
-}
-
-function _extends$1() {
-  _extends$1 = Object.assign ? Object.assign.bind() : function (target) {
-    for (var i = 1; i < arguments.length; i++) {
-      var source = arguments[i];
-
-      for (var key in source) {
-        if (Object.prototype.hasOwnProperty.call(source, key)) {
-          target[key] = source[key];
-        }
-      }
-    }
-
-    return target;
-  };
-  return _extends$1.apply(this, arguments);
-}
-
-const withAnimated = (Component, host) => {
-  const hasInstance = !is.fun(Component) || Component.prototype && Component.prototype.isReactComponent;
-  return React.forwardRef((givenProps, givenRef) => {
-    const instanceRef = React.useRef(null);
-    const ref = hasInstance && React.useCallback(value => {
-      instanceRef.current = updateRef(givenRef, value);
-    }, [givenRef]);
-    const [props, deps] = getAnimatedState(givenProps, host);
-    const forceUpdate = useForceUpdate();
-
-    const callback = () => {
-      const instance = instanceRef.current;
-
-      if (hasInstance && !instance) {
-        return;
-      }
-
-      const didUpdate = instance ? host.applyAnimatedValues(instance, props.getValue(true)) : false;
-
-      if (didUpdate === false) {
-        forceUpdate();
-      }
-    };
-
-    const observer = new PropsObserver(callback, deps);
-    const observerRef = React.useRef();
-    useIsomorphicLayoutEffect(() => {
-      observerRef.current = observer;
-      each(deps, dep => addFluidObserver(dep, observer));
-      return () => {
-        if (observerRef.current) {
-          each(observerRef.current.deps, dep => removeFluidObserver(dep, observerRef.current));
-          raf.cancel(observerRef.current.update);
-        }
-      };
-    });
-    React.useEffect(callback, []);
-    useOnce(() => () => {
-      const observer = observerRef.current;
-      each(observer.deps, dep => removeFluidObserver(dep, observer));
-    });
-    const usedProps = host.getComponentProps(props.getValue());
-    return React__namespace.createElement(Component, _extends$1({}, usedProps, {
-      ref: ref
-    }));
-  });
-};
-
-class PropsObserver {
-  constructor(update, deps) {
-    this.update = update;
-    this.deps = deps;
-  }
-
-  eventObserved(event) {
-    if (event.type == 'change') {
-      raf.write(this.update);
-    }
-  }
-
-}
-
-function getAnimatedState(props, host) {
-  const dependencies = new Set();
-  TreeContext.dependencies = dependencies;
-  if (props.style) props = _extends$1({}, props, {
-    style: host.createAnimatedStyle(props.style)
-  });
-  props = new AnimatedObject(props);
-  TreeContext.dependencies = null;
-  return [props, dependencies];
-}
-
-function updateRef(ref, value) {
-  if (ref) {
-    if (is.fun(ref)) ref(value);else ref.current = value;
-  }
-
-  return value;
-}
-
-const cacheKey = Symbol.for('AnimatedComponent');
-const createHost = (components, {
-  applyAnimatedValues: _applyAnimatedValues = () => false,
-  createAnimatedStyle: _createAnimatedStyle = style => new AnimatedObject(style),
-  getComponentProps: _getComponentProps = props => props
-} = {}) => {
-  const hostConfig = {
-    applyAnimatedValues: _applyAnimatedValues,
-    createAnimatedStyle: _createAnimatedStyle,
-    getComponentProps: _getComponentProps
-  };
-
-  const animated = Component => {
-    const displayName = getDisplayName(Component) || 'Anonymous';
-
-    if (is.str(Component)) {
-      Component = animated[Component] || (animated[Component] = withAnimated(Component, hostConfig));
-    } else {
-      Component = Component[cacheKey] || (Component[cacheKey] = withAnimated(Component, hostConfig));
-    }
-
-    Component.displayName = `Animated(${displayName})`;
-    return Component;
-  };
-
-  eachProp(components, (Component, key) => {
-    if (is.arr(components)) {
-      key = getDisplayName(Component);
-    }
-
-    animated[key] = animated(Component);
-  });
-  return {
-    animated
-  };
-};
-
-const getDisplayName = arg => is.str(arg) ? arg : arg && is.str(arg.displayName) ? arg.displayName : is.fun(arg) && arg.name || null;
-
-function _extends() {
-  _extends = Object.assign ? Object.assign.bind() : function (target) {
-    for (var i = 1; i < arguments.length; i++) {
-      var source = arguments[i];
-
-      for (var key in source) {
-        if (Object.prototype.hasOwnProperty.call(source, key)) {
-          target[key] = source[key];
-        }
-      }
-    }
-
-    return target;
-  };
-  return _extends.apply(this, arguments);
-}
-
-function callProp(value, ...args) {
-  return is.fun(value) ? value(...args) : value;
-}
-const matchProp = (value, key) => value === true || !!(key && value && (is.fun(value) ? value(key) : toArray(value).includes(key)));
-const resolveProp = (prop, key) => is.obj(prop) ? key && prop[key] : prop;
-const getDefaultProp = (props, key) => props.default === true ? props[key] : props.default ? props.default[key] : undefined;
-
-const noopTransform = value => value;
-
-const getDefaultProps = (props, transform = noopTransform) => {
-  let keys = DEFAULT_PROPS;
-
-  if (props.default && props.default !== true) {
-    props = props.default;
-    keys = Object.keys(props);
-  }
-
-  const defaults = {};
-
-  for (const key of keys) {
-    const value = transform(props[key], key);
-
-    if (!is.und(value)) {
-      defaults[key] = value;
-    }
-  }
-
-  return defaults;
-};
-const DEFAULT_PROPS = ['config', 'onProps', 'onStart', 'onChange', 'onPause', 'onResume', 'onRest'];
-const RESERVED_PROPS = {
-  config: 1,
-  from: 1,
-  to: 1,
-  ref: 1,
-  loop: 1,
-  reset: 1,
-  pause: 1,
-  cancel: 1,
-  reverse: 1,
-  immediate: 1,
-  default: 1,
-  delay: 1,
-  onProps: 1,
-  onStart: 1,
-  onChange: 1,
-  onPause: 1,
-  onResume: 1,
-  onRest: 1,
-  onResolve: 1,
-  items: 1,
-  trail: 1,
-  sort: 1,
-  expires: 1,
-  initial: 1,
-  enter: 1,
-  update: 1,
-  leave: 1,
-  children: 1,
-  onDestroyed: 1,
-  keys: 1,
-  callId: 1,
-  parentId: 1
-};
-
-function getForwardProps(props) {
-  const forward = {};
-  let count = 0;
-  eachProp(props, (value, prop) => {
-    if (!RESERVED_PROPS[prop]) {
-      forward[prop] = value;
-      count++;
-    }
-  });
-
-  if (count) {
-    return forward;
-  }
-}
-
-function inferTo(props) {
-  const to = getForwardProps(props);
-
-  if (to) {
-    const out = {
-      to
-    };
-    eachProp(props, (val, key) => key in to || (out[key] = val));
-    return out;
-  }
-
-  return _extends({}, props);
-}
-function computeGoal(value) {
-  value = getFluidValue(value);
-  return is.arr(value) ? value.map(computeGoal) : isAnimatedString(value) ? globals.createStringInterpolator({
-    range: [0, 1],
-    output: [value, value]
-  })(1) : value;
-}
-function hasProps(props) {
-  for (const _ in props) return true;
-
-  return false;
-}
-function isAsyncTo(to) {
-  return is.fun(to) || is.arr(to) && is.obj(to[0]);
-}
-function detachRefs(ctrl, ref) {
-  var _ctrl$ref;
-
-  (_ctrl$ref = ctrl.ref) == null ? void 0 : _ctrl$ref.delete(ctrl);
-  ref == null ? void 0 : ref.delete(ctrl);
-}
-function replaceRef(ctrl, ref) {
-  if (ref && ctrl.ref !== ref) {
-    var _ctrl$ref2;
-
-    (_ctrl$ref2 = ctrl.ref) == null ? void 0 : _ctrl$ref2.delete(ctrl);
-    ref.add(ctrl);
-    ctrl.ref = ref;
-  }
-}
-
-const config = {
-  default: {
-    tension: 170,
-    friction: 26
-  },
-  gentle: {
-    tension: 120,
-    friction: 14
-  },
-  wobbly: {
-    tension: 180,
-    friction: 12
-  },
-  stiff: {
-    tension: 210,
-    friction: 20
-  },
-  slow: {
-    tension: 280,
-    friction: 60
-  },
-  molasses: {
-    tension: 280,
-    friction: 120
-  }
-};
-const c1 = 1.70158;
-const c2 = c1 * 1.525;
-const c3 = c1 + 1;
-const c4 = 2 * Math.PI / 3;
-const c5 = 2 * Math.PI / 4.5;
-
-const bounceOut = x => {
-  const n1 = 7.5625;
-  const d1 = 2.75;
-
-  if (x < 1 / d1) {
-    return n1 * x * x;
-  } else if (x < 2 / d1) {
-    return n1 * (x -= 1.5 / d1) * x + 0.75;
-  } else if (x < 2.5 / d1) {
-    return n1 * (x -= 2.25 / d1) * x + 0.9375;
-  } else {
-    return n1 * (x -= 2.625 / d1) * x + 0.984375;
-  }
-};
-
-const easings = {
-  linear: x => x,
-  easeInQuad: x => x * x,
-  easeOutQuad: x => 1 - (1 - x) * (1 - x),
-  easeInOutQuad: x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2,
-  easeInCubic: x => x * x * x,
-  easeOutCubic: x => 1 - Math.pow(1 - x, 3),
-  easeInOutCubic: x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2,
-  easeInQuart: x => x * x * x * x,
-  easeOutQuart: x => 1 - Math.pow(1 - x, 4),
-  easeInOutQuart: x => x < 0.5 ? 8 * x * x * x * x : 1 - Math.pow(-2 * x + 2, 4) / 2,
-  easeInQuint: x => x * x * x * x * x,
-  easeOutQuint: x => 1 - Math.pow(1 - x, 5),
-  easeInOutQuint: x => x < 0.5 ? 16 * x * x * x * x * x : 1 - Math.pow(-2 * x + 2, 5) / 2,
-  easeInSine: x => 1 - Math.cos(x * Math.PI / 2),
-  easeOutSine: x => Math.sin(x * Math.PI / 2),
-  easeInOutSine: x => -(Math.cos(Math.PI * x) - 1) / 2,
-  easeInExpo: x => x === 0 ? 0 : Math.pow(2, 10 * x - 10),
-  easeOutExpo: x => x === 1 ? 1 : 1 - Math.pow(2, -10 * x),
-  easeInOutExpo: x => x === 0 ? 0 : x === 1 ? 1 : x < 0.5 ? Math.pow(2, 20 * x - 10) / 2 : (2 - Math.pow(2, -20 * x + 10)) / 2,
-  easeInCirc: x => 1 - Math.sqrt(1 - Math.pow(x, 2)),
-  easeOutCirc: x => Math.sqrt(1 - Math.pow(x - 1, 2)),
-  easeInOutCirc: x => x < 0.5 ? (1 - Math.sqrt(1 - Math.pow(2 * x, 2))) / 2 : (Math.sqrt(1 - Math.pow(-2 * x + 2, 2)) + 1) / 2,
-  easeInBack: x => c3 * x * x * x - c1 * x * x,
-  easeOutBack: x => 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2),
-  easeInOutBack: x => x < 0.5 ? Math.pow(2 * x, 2) * ((c2 + 1) * 2 * x - c2) / 2 : (Math.pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2,
-  easeInElastic: x => x === 0 ? 0 : x === 1 ? 1 : -Math.pow(2, 10 * x - 10) * Math.sin((x * 10 - 10.75) * c4),
-  easeOutElastic: x => x === 0 ? 0 : x === 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * c4) + 1,
-  easeInOutElastic: x => x === 0 ? 0 : x === 1 ? 1 : x < 0.5 ? -(Math.pow(2, 20 * x - 10) * Math.sin((20 * x - 11.125) * c5)) / 2 : Math.pow(2, -20 * x + 10) * Math.sin((20 * x - 11.125) * c5) / 2 + 1,
-  easeInBounce: x => 1 - bounceOut(1 - x),
-  easeOutBounce: bounceOut,
-  easeInOutBounce: x => x < 0.5 ? (1 - bounceOut(1 - 2 * x)) / 2 : (1 + bounceOut(2 * x - 1)) / 2
-};
-
-const defaults = _extends({}, config.default, {
-  mass: 1,
-  damping: 1,
-  easing: easings.linear,
-  clamp: false
-});
-
-class AnimationConfig {
-  constructor() {
-    this.tension = void 0;
-    this.friction = void 0;
-    this.frequency = void 0;
-    this.damping = void 0;
-    this.mass = void 0;
-    this.velocity = 0;
-    this.restVelocity = void 0;
-    this.precision = void 0;
-    this.progress = void 0;
-    this.duration = void 0;
-    this.easing = void 0;
-    this.clamp = void 0;
-    this.bounce = void 0;
-    this.decay = void 0;
-    this.round = void 0;
-    Object.assign(this, defaults);
-  }
-
-}
-function mergeConfig(config, newConfig, defaultConfig) {
-  if (defaultConfig) {
-    defaultConfig = _extends({}, defaultConfig);
-    sanitizeConfig(defaultConfig, newConfig);
-    newConfig = _extends({}, defaultConfig, newConfig);
-  }
-
-  sanitizeConfig(config, newConfig);
-  Object.assign(config, newConfig);
-
-  for (const key in defaults) {
-    if (config[key] == null) {
-      config[key] = defaults[key];
-    }
-  }
-
-  let {
-    mass,
-    frequency,
-    damping
-  } = config;
-
-  if (!is.und(frequency)) {
-    if (frequency < 0.01) frequency = 0.01;
-    if (damping < 0) damping = 0;
-    config.tension = Math.pow(2 * Math.PI / frequency, 2) * mass;
-    config.friction = 4 * Math.PI * damping * mass / frequency;
-  }
-
-  return config;
-}
-
-function sanitizeConfig(config, props) {
-  if (!is.und(props.decay)) {
-    config.duration = undefined;
-  } else {
-    const isTensionConfig = !is.und(props.tension) || !is.und(props.friction);
-
-    if (isTensionConfig || !is.und(props.frequency) || !is.und(props.damping) || !is.und(props.mass)) {
-      config.duration = undefined;
-      config.decay = undefined;
-    }
-
-    if (isTensionConfig) {
-      config.frequency = undefined;
-    }
-  }
-}
-
-const emptyArray = [];
-class Animation {
-  constructor() {
-    this.changed = false;
-    this.values = emptyArray;
-    this.toValues = null;
-    this.fromValues = emptyArray;
-    this.to = void 0;
-    this.from = void 0;
-    this.config = new AnimationConfig();
-    this.immediate = false;
-  }
-
-}
-
-function scheduleProps(callId, {
-  key,
-  props,
-  defaultProps,
-  state,
-  actions
-}) {
-  return new Promise((resolve, reject) => {
-    var _props$cancel;
-
-    let delay;
-    let timeout;
-    let cancel = matchProp((_props$cancel = props.cancel) != null ? _props$cancel : defaultProps == null ? void 0 : defaultProps.cancel, key);
-
-    if (cancel) {
-      onStart();
-    } else {
-      if (!is.und(props.pause)) {
-        state.paused = matchProp(props.pause, key);
-      }
-
-      let pause = defaultProps == null ? void 0 : defaultProps.pause;
-
-      if (pause !== true) {
-        pause = state.paused || matchProp(pause, key);
-      }
-
-      delay = callProp(props.delay || 0, key);
-
-      if (pause) {
-        state.resumeQueue.add(onResume);
-        actions.pause();
-      } else {
-        actions.resume();
-        onResume();
-      }
-    }
-
-    function onPause() {
-      state.resumeQueue.add(onResume);
-      state.timeouts.delete(timeout);
-      timeout.cancel();
-      delay = timeout.time - raf.now();
-    }
-
-    function onResume() {
-      if (delay > 0 && !globals.skipAnimation) {
-        state.delayed = true;
-        timeout = raf.setTimeout(onStart, delay);
-        state.pauseQueue.add(onPause);
-        state.timeouts.add(timeout);
-      } else {
-        onStart();
-      }
-    }
-
-    function onStart() {
-      if (state.delayed) {
-        state.delayed = false;
-      }
-
-      state.pauseQueue.delete(onPause);
-      state.timeouts.delete(timeout);
-
-      if (callId <= (state.cancelId || 0)) {
-        cancel = true;
-      }
-
-      try {
-        actions.start(_extends({}, props, {
-          callId,
-          cancel
-        }), resolve);
-      } catch (err) {
-        reject(err);
-      }
-    }
-  });
-}
-
-const getCombinedResult = (target, results) => results.length == 1 ? results[0] : results.some(result => result.cancelled) ? getCancelledResult(target.get()) : results.every(result => result.noop) ? getNoopResult(target.get()) : getFinishedResult(target.get(), results.every(result => result.finished));
-const getNoopResult = value => ({
-  value,
-  noop: true,
-  finished: true,
-  cancelled: false
-});
-const getFinishedResult = (value, finished, cancelled = false) => ({
-  value,
-  finished,
-  cancelled
-});
-const getCancelledResult = value => ({
-  value,
-  cancelled: true,
-  finished: false
-});
-
-function runAsync(to, props, state, target) {
-  const {
-    callId,
-    parentId,
-    onRest
-  } = props;
-  const {
-    asyncTo: prevTo,
-    promise: prevPromise
-  } = state;
-
-  if (!parentId && to === prevTo && !props.reset) {
-    return prevPromise;
-  }
-
-  return state.promise = (async () => {
-    state.asyncId = callId;
-    state.asyncTo = to;
-    const defaultProps = getDefaultProps(props, (value, key) => key === 'onRest' ? undefined : value);
-    let preventBail;
-    let bail;
-    const bailPromise = new Promise((resolve, reject) => (preventBail = resolve, bail = reject));
-
-    const bailIfEnded = bailSignal => {
-      const bailResult = callId <= (state.cancelId || 0) && getCancelledResult(target) || callId !== state.asyncId && getFinishedResult(target, false);
-
-      if (bailResult) {
-        bailSignal.result = bailResult;
-        bail(bailSignal);
-        throw bailSignal;
-      }
-    };
-
-    const animate = (arg1, arg2) => {
-      const bailSignal = new BailSignal();
-      const skipAnimationSignal = new SkipAniamtionSignal();
-      return (async () => {
-        if (globals.skipAnimation) {
-          stopAsync(state);
-          skipAnimationSignal.result = getFinishedResult(target, false);
-          bail(skipAnimationSignal);
-          throw skipAnimationSignal;
-        }
-
-        bailIfEnded(bailSignal);
-        const props = is.obj(arg1) ? _extends({}, arg1) : _extends({}, arg2, {
-          to: arg1
-        });
-        props.parentId = callId;
-        eachProp(defaultProps, (value, key) => {
-          if (is.und(props[key])) {
-            props[key] = value;
-          }
-        });
-        const result = await target.start(props);
-        bailIfEnded(bailSignal);
-
-        if (state.paused) {
-          await new Promise(resume => {
-            state.resumeQueue.add(resume);
-          });
-        }
-
-        return result;
-      })();
-    };
-
-    let result;
-
-    if (globals.skipAnimation) {
-      stopAsync(state);
-      return getFinishedResult(target, false);
-    }
-
-    try {
-      let animating;
-
-      if (is.arr(to)) {
-        animating = (async queue => {
-          for (const props of queue) {
-            await animate(props);
-          }
-        })(to);
-      } else {
-        animating = Promise.resolve(to(animate, target.stop.bind(target)));
-      }
-
-      await Promise.all([animating.then(preventBail), bailPromise]);
-      result = getFinishedResult(target.get(), true, false);
-    } catch (err) {
-      if (err instanceof BailSignal) {
-        result = err.result;
-      } else if (err instanceof SkipAniamtionSignal) {
-        result = err.result;
-      } else {
-        throw err;
-      }
-    } finally {
-      if (callId == state.asyncId) {
-        state.asyncId = parentId;
-        state.asyncTo = parentId ? prevTo : undefined;
-        state.promise = parentId ? prevPromise : undefined;
-      }
-    }
-
-    if (is.fun(onRest)) {
-      raf.batchedUpdates(() => {
-        onRest(result, target, target.item);
-      });
-    }
-
-    return result;
-  })();
-}
-function stopAsync(state, cancelId) {
-  flush(state.timeouts, t => t.cancel());
-  state.pauseQueue.clear();
-  state.resumeQueue.clear();
-  state.asyncId = state.asyncTo = state.promise = undefined;
-  if (cancelId) state.cancelId = cancelId;
-}
-class BailSignal extends Error {
-  constructor() {
-    super('An async animation has been interrupted. You see this error because you ' + 'forgot to use `await` or `.catch(...)` on its returned promise.');
-    this.result = void 0;
-  }
-
-}
-class SkipAniamtionSignal extends Error {
-  constructor() {
-    super('SkipAnimationSignal');
-    this.result = void 0;
-  }
-
-}
-
-const isFrameValue = value => value instanceof FrameValue;
-let nextId$1 = 1;
-class FrameValue extends FluidValue {
-  constructor(...args) {
-    super(...args);
-    this.id = nextId$1++;
-    this.key = void 0;
-    this._priority = 0;
-  }
-
-  get priority() {
-    return this._priority;
-  }
-
-  set priority(priority) {
-    if (this._priority != priority) {
-      this._priority = priority;
-
-      this._onPriorityChange(priority);
-    }
-  }
-
-  get() {
-    const node = getAnimated(this);
-    return node && node.getValue();
-  }
-
-  to(...args) {
-    return globals.to(this, args);
-  }
-
-  interpolate(...args) {
-    deprecateInterpolate();
-    return globals.to(this, args);
-  }
-
-  toJSON() {
-    return this.get();
-  }
-
-  observerAdded(count) {
-    if (count == 1) this._attach();
-  }
-
-  observerRemoved(count) {
-    if (count == 0) this._detach();
-  }
-
-  _attach() {}
-
-  _detach() {}
-
-  _onChange(value, idle = false) {
-    callFluidObservers(this, {
-      type: 'change',
-      parent: this,
-      value,
-      idle
-    });
-  }
-
-  _onPriorityChange(priority) {
-    if (!this.idle) {
-      frameLoop.sort(this);
-    }
-
-    callFluidObservers(this, {
-      type: 'priority',
-      parent: this,
-      priority
-    });
-  }
-
-}
-
-const $P = Symbol.for('SpringPhase');
-const HAS_ANIMATED = 1;
-const IS_ANIMATING = 2;
-const IS_PAUSED = 4;
-const hasAnimated = target => (target[$P] & HAS_ANIMATED) > 0;
-const isAnimating = target => (target[$P] & IS_ANIMATING) > 0;
-const isPaused = target => (target[$P] & IS_PAUSED) > 0;
-const setActiveBit = (target, active) => active ? target[$P] |= IS_ANIMATING | HAS_ANIMATED : target[$P] &= ~IS_ANIMATING;
-const setPausedBit = (target, paused) => paused ? target[$P] |= IS_PAUSED : target[$P] &= ~IS_PAUSED;
-
-class SpringValue extends FrameValue {
-  constructor(arg1, arg2) {
-    super();
-    this.key = void 0;
-    this.animation = new Animation();
-    this.queue = void 0;
-    this.defaultProps = {};
-    this._state = {
-      paused: false,
-      delayed: false,
-      pauseQueue: new Set(),
-      resumeQueue: new Set(),
-      timeouts: new Set()
-    };
-    this._pendingCalls = new Set();
-    this._lastCallId = 0;
-    this._lastToId = 0;
-    this._memoizedDuration = 0;
-
-    if (!is.und(arg1) || !is.und(arg2)) {
-      const props = is.obj(arg1) ? _extends({}, arg1) : _extends({}, arg2, {
-        from: arg1
-      });
-
-      if (is.und(props.default)) {
-        props.default = true;
-      }
-
-      this.start(props);
-    }
-  }
-
-  get idle() {
-    return !(isAnimating(this) || this._state.asyncTo) || isPaused(this);
-  }
-
-  get goal() {
-    return getFluidValue(this.animation.to);
-  }
-
-  get velocity() {
-    const node = getAnimated(this);
-    return node instanceof AnimatedValue ? node.lastVelocity || 0 : node.getPayload().map(node => node.lastVelocity || 0);
-  }
-
-  get hasAnimated() {
-    return hasAnimated(this);
-  }
-
-  get isAnimating() {
-    return isAnimating(this);
-  }
-
-  get isPaused() {
-    return isPaused(this);
-  }
-
-  get isDelayed() {
-    return this._state.delayed;
-  }
-
-  advance(dt) {
-    let idle = true;
-    let changed = false;
-    const anim = this.animation;
-    let {
-      config,
-      toValues
-    } = anim;
-    const payload = getPayload(anim.to);
-
-    if (!payload && hasFluidValue(anim.to)) {
-      toValues = toArray(getFluidValue(anim.to));
-    }
-
-    anim.values.forEach((node, i) => {
-      if (node.done) return;
-      const to = node.constructor == AnimatedString ? 1 : payload ? payload[i].lastPosition : toValues[i];
-      let finished = anim.immediate;
-      let position = to;
-
-      if (!finished) {
-        position = node.lastPosition;
-
-        if (config.tension <= 0) {
-          node.done = true;
-          return;
-        }
-
-        let elapsed = node.elapsedTime += dt;
-        const from = anim.fromValues[i];
-        const v0 = node.v0 != null ? node.v0 : node.v0 = is.arr(config.velocity) ? config.velocity[i] : config.velocity;
-        let velocity;
-        const precision = config.precision || (from == to ? 0.005 : Math.min(1, Math.abs(to - from) * 0.001));
-
-        if (!is.und(config.duration)) {
-          let p = 1;
-
-          if (config.duration > 0) {
-            if (this._memoizedDuration !== config.duration) {
-              this._memoizedDuration = config.duration;
-
-              if (node.durationProgress > 0) {
-                node.elapsedTime = config.duration * node.durationProgress;
-                elapsed = node.elapsedTime += dt;
-              }
-            }
-
-            p = (config.progress || 0) + elapsed / this._memoizedDuration;
-            p = p > 1 ? 1 : p < 0 ? 0 : p;
-            node.durationProgress = p;
-          }
-
-          position = from + config.easing(p) * (to - from);
-          velocity = (position - node.lastPosition) / dt;
-          finished = p == 1;
-        } else if (config.decay) {
-          const decay = config.decay === true ? 0.998 : config.decay;
-          const e = Math.exp(-(1 - decay) * elapsed);
-          position = from + v0 / (1 - decay) * (1 - e);
-          finished = Math.abs(node.lastPosition - position) <= precision;
-          velocity = v0 * e;
-        } else {
-          velocity = node.lastVelocity == null ? v0 : node.lastVelocity;
-          const restVelocity = config.restVelocity || precision / 10;
-          const bounceFactor = config.clamp ? 0 : config.bounce;
-          const canBounce = !is.und(bounceFactor);
-          const isGrowing = from == to ? node.v0 > 0 : from < to;
-          let isMoving;
-          let isBouncing = false;
-          const step = 1;
-          const numSteps = Math.ceil(dt / step);
-
-          for (let n = 0; n < numSteps; ++n) {
-            isMoving = Math.abs(velocity) > restVelocity;
-
-            if (!isMoving) {
-              finished = Math.abs(to - position) <= precision;
-
-              if (finished) {
-                break;
-              }
-            }
-
-            if (canBounce) {
-              isBouncing = position == to || position > to == isGrowing;
-
-              if (isBouncing) {
-                velocity = -velocity * bounceFactor;
-                position = to;
-              }
-            }
-
-            const springForce = -config.tension * 0.000001 * (position - to);
-            const dampingForce = -config.friction * 0.001 * velocity;
-            const acceleration = (springForce + dampingForce) / config.mass;
-            velocity = velocity + acceleration * step;
-            position = position + velocity * step;
-          }
-        }
-
-        node.lastVelocity = velocity;
-
-        if (Number.isNaN(position)) {
-          console.warn(`Got NaN while animating:`, this);
-          finished = true;
-        }
-      }
-
-      if (payload && !payload[i].done) {
-        finished = false;
-      }
-
-      if (finished) {
-        node.done = true;
-      } else {
-        idle = false;
-      }
-
-      if (node.setValue(position, config.round)) {
-        changed = true;
-      }
-    });
-    const node = getAnimated(this);
-    const currVal = node.getValue();
-
-    if (idle) {
-      const finalVal = getFluidValue(anim.to);
-
-      if ((currVal !== finalVal || changed) && !config.decay) {
-        node.setValue(finalVal);
-
-        this._onChange(finalVal);
-      } else if (changed && config.decay) {
-        this._onChange(currVal);
-      }
-
-      this._stop();
-    } else if (changed) {
-      this._onChange(currVal);
-    }
-  }
-
-  set(value) {
-    raf.batchedUpdates(() => {
-      this._stop();
-
-      this._focus(value);
-
-      this._set(value);
-    });
-    return this;
-  }
-
-  pause() {
-    this._update({
-      pause: true
-    });
-  }
-
-  resume() {
-    this._update({
-      pause: false
-    });
-  }
-
-  finish() {
-    if (isAnimating(this)) {
-      const {
-        to,
-        config
-      } = this.animation;
-      raf.batchedUpdates(() => {
-        this._onStart();
-
-        if (!config.decay) {
-          this._set(to, false);
-        }
-
-        this._stop();
-      });
-    }
-
-    return this;
-  }
-
-  update(props) {
-    const queue = this.queue || (this.queue = []);
-    queue.push(props);
-    return this;
-  }
-
-  start(to, arg2) {
-    let queue;
-
-    if (!is.und(to)) {
-      queue = [is.obj(to) ? to : _extends({}, arg2, {
-        to
-      })];
-    } else {
-      queue = this.queue || [];
-      this.queue = [];
-    }
-
-    return Promise.all(queue.map(props => {
-      const up = this._update(props);
-
-      return up;
-    })).then(results => getCombinedResult(this, results));
-  }
-
-  stop(cancel) {
-    const {
-      to
-    } = this.animation;
-
-    this._focus(this.get());
-
-    stopAsync(this._state, cancel && this._lastCallId);
-    raf.batchedUpdates(() => this._stop(to, cancel));
-    return this;
-  }
-
-  reset() {
-    this._update({
-      reset: true
-    });
-  }
-
-  eventObserved(event) {
-    if (event.type == 'change') {
-      this._start();
-    } else if (event.type == 'priority') {
-      this.priority = event.priority + 1;
-    }
-  }
-
-  _prepareNode(props) {
-    const key = this.key || '';
-    let {
-      to,
-      from
-    } = props;
-    to = is.obj(to) ? to[key] : to;
-
-    if (to == null || isAsyncTo(to)) {
-      to = undefined;
-    }
-
-    from = is.obj(from) ? from[key] : from;
-
-    if (from == null) {
-      from = undefined;
-    }
-
-    const range = {
-      to,
-      from
-    };
-
-    if (!hasAnimated(this)) {
-      if (props.reverse) [to, from] = [from, to];
-      from = getFluidValue(from);
-
-      if (!is.und(from)) {
-        this._set(from);
-      } else if (!getAnimated(this)) {
-        this._set(to);
-      }
-    }
-
-    return range;
-  }
-
-  _update(_ref, isLoop) {
-    let props = _extends({}, _ref);
-
-    const {
-      key,
-      defaultProps
-    } = this;
-    if (props.default) Object.assign(defaultProps, getDefaultProps(props, (value, prop) => /^on/.test(prop) ? resolveProp(value, key) : value));
-    mergeActiveFn(this, props, 'onProps');
-    sendEvent(this, 'onProps', props, this);
-
-    const range = this._prepareNode(props);
-
-    if (Object.isFrozen(this)) {
-      throw Error('Cannot animate a `SpringValue` object that is frozen. ' + 'Did you forget to pass your component to `animated(...)` before animating its props?');
-    }
-
-    const state = this._state;
-    return scheduleProps(++this._lastCallId, {
-      key,
-      props,
-      defaultProps,
-      state,
-      actions: {
-        pause: () => {
-          if (!isPaused(this)) {
-            setPausedBit(this, true);
-            flushCalls(state.pauseQueue);
-            sendEvent(this, 'onPause', getFinishedResult(this, checkFinished(this, this.animation.to)), this);
-          }
-        },
-        resume: () => {
-          if (isPaused(this)) {
-            setPausedBit(this, false);
-
-            if (isAnimating(this)) {
-              this._resume();
-            }
-
-            flushCalls(state.resumeQueue);
-            sendEvent(this, 'onResume', getFinishedResult(this, checkFinished(this, this.animation.to)), this);
-          }
-        },
-        start: this._merge.bind(this, range)
-      }
-    }).then(result => {
-      if (props.loop && result.finished && !(isLoop && result.noop)) {
-        const nextProps = createLoopUpdate(props);
-
-        if (nextProps) {
-          return this._update(nextProps, true);
-        }
-      }
-
-      return result;
-    });
-  }
-
-  _merge(range, props, resolve) {
-    if (props.cancel) {
-      this.stop(true);
-      return resolve(getCancelledResult(this));
-    }
-
-    const hasToProp = !is.und(range.to);
-    const hasFromProp = !is.und(range.from);
-
-    if (hasToProp || hasFromProp) {
-      if (props.callId > this._lastToId) {
-        this._lastToId = props.callId;
-      } else {
-        return resolve(getCancelledResult(this));
-      }
-    }
-
-    const {
-      key,
-      defaultProps,
-      animation: anim
-    } = this;
-    const {
-      to: prevTo,
-      from: prevFrom
-    } = anim;
-    let {
-      to = prevTo,
-      from = prevFrom
-    } = range;
-
-    if (hasFromProp && !hasToProp && (!props.default || is.und(to))) {
-      to = from;
-    }
-
-    if (props.reverse) [to, from] = [from, to];
-    const hasFromChanged = !isEqual(from, prevFrom);
-
-    if (hasFromChanged) {
-      anim.from = from;
-    }
-
-    from = getFluidValue(from);
-    const hasToChanged = !isEqual(to, prevTo);
-
-    if (hasToChanged) {
-      this._focus(to);
-    }
-
-    const hasAsyncTo = isAsyncTo(props.to);
-    const {
-      config
-    } = anim;
-    const {
-      decay,
-      velocity
-    } = config;
-
-    if (hasToProp || hasFromProp) {
-      config.velocity = 0;
-    }
-
-    if (props.config && !hasAsyncTo) {
-      mergeConfig(config, callProp(props.config, key), props.config !== defaultProps.config ? callProp(defaultProps.config, key) : void 0);
-    }
-
-    let node = getAnimated(this);
-
-    if (!node || is.und(to)) {
-      return resolve(getFinishedResult(this, true));
-    }
-
-    const reset = is.und(props.reset) ? hasFromProp && !props.default : !is.und(from) && matchProp(props.reset, key);
-    const value = reset ? from : this.get();
-    const goal = computeGoal(to);
-    const isAnimatable = is.num(goal) || is.arr(goal) || isAnimatedString(goal);
-    const immediate = !hasAsyncTo && (!isAnimatable || matchProp(defaultProps.immediate || props.immediate, key));
-
-    if (hasToChanged) {
-      const nodeType = getAnimatedType(to);
-
-      if (nodeType !== node.constructor) {
-        if (immediate) {
-          node = this._set(goal);
-        } else throw Error(`Cannot animate between ${node.constructor.name} and ${nodeType.name}, as the "to" prop suggests`);
-      }
-    }
-
-    const goalType = node.constructor;
-    let started = hasFluidValue(to);
-    let finished = false;
-
-    if (!started) {
-      const hasValueChanged = reset || !hasAnimated(this) && hasFromChanged;
-
-      if (hasToChanged || hasValueChanged) {
-        finished = isEqual(computeGoal(value), goal);
-        started = !finished;
-      }
-
-      if (!isEqual(anim.immediate, immediate) && !immediate || !isEqual(config.decay, decay) || !isEqual(config.velocity, velocity)) {
-        started = true;
-      }
-    }
-
-    if (finished && isAnimating(this)) {
-      if (anim.changed && !reset) {
-        started = true;
-      } else if (!started) {
-        this._stop(prevTo);
-      }
-    }
-
-    if (!hasAsyncTo) {
-      if (started || hasFluidValue(prevTo)) {
-        anim.values = node.getPayload();
-        anim.toValues = hasFluidValue(to) ? null : goalType == AnimatedString ? [1] : toArray(goal);
-      }
-
-      if (anim.immediate != immediate) {
-        anim.immediate = immediate;
-
-        if (!immediate && !reset) {
-          this._set(prevTo);
-        }
-      }
-
-      if (started) {
-        const {
-          onRest
-        } = anim;
-        each(ACTIVE_EVENTS, type => mergeActiveFn(this, props, type));
-        const result = getFinishedResult(this, checkFinished(this, prevTo));
-        flushCalls(this._pendingCalls, result);
-
-        this._pendingCalls.add(resolve);
-
-        if (anim.changed) raf.batchedUpdates(() => {
-          anim.changed = !reset;
-          onRest == null ? void 0 : onRest(result, this);
-
-          if (reset) {
-            callProp(defaultProps.onRest, result);
-          } else {
-            anim.onStart == null ? void 0 : anim.onStart(result, this);
-          }
-        });
-      }
-    }
-
-    if (reset) {
-      this._set(value);
-    }
-
-    if (hasAsyncTo) {
-      resolve(runAsync(props.to, props, this._state, this));
-    } else if (started) {
-      this._start();
-    } else if (isAnimating(this) && !hasToChanged) {
-      this._pendingCalls.add(resolve);
-    } else {
-      resolve(getNoopResult(value));
-    }
-  }
-
-  _focus(value) {
-    const anim = this.animation;
-
-    if (value !== anim.to) {
-      if (getFluidObservers(this)) {
-        this._detach();
-      }
-
-      anim.to = value;
-
-      if (getFluidObservers(this)) {
-        this._attach();
-      }
-    }
-  }
-
-  _attach() {
-    let priority = 0;
-    const {
-      to
-    } = this.animation;
-
-    if (hasFluidValue(to)) {
-      addFluidObserver(to, this);
-
-      if (isFrameValue(to)) {
-        priority = to.priority + 1;
-      }
-    }
-
-    this.priority = priority;
-  }
-
-  _detach() {
-    const {
-      to
-    } = this.animation;
-
-    if (hasFluidValue(to)) {
-      removeFluidObserver(to, this);
-    }
-  }
-
-  _set(arg, idle = true) {
-    const value = getFluidValue(arg);
-
-    if (!is.und(value)) {
-      const oldNode = getAnimated(this);
-
-      if (!oldNode || !isEqual(value, oldNode.getValue())) {
-        const nodeType = getAnimatedType(value);
-
-        if (!oldNode || oldNode.constructor != nodeType) {
-          setAnimated(this, nodeType.create(value));
-        } else {
-          oldNode.setValue(value);
-        }
-
-        if (oldNode) {
-          raf.batchedUpdates(() => {
-            this._onChange(value, idle);
-          });
-        }
-      }
-    }
-
-    return getAnimated(this);
-  }
-
-  _onStart() {
-    const anim = this.animation;
-
-    if (!anim.changed) {
-      anim.changed = true;
-      sendEvent(this, 'onStart', getFinishedResult(this, checkFinished(this, anim.to)), this);
-    }
-  }
-
-  _onChange(value, idle) {
-    if (!idle) {
-      this._onStart();
-
-      callProp(this.animation.onChange, value, this);
-    }
-
-    callProp(this.defaultProps.onChange, value, this);
-
-    super._onChange(value, idle);
-  }
-
-  _start() {
-    const anim = this.animation;
-    getAnimated(this).reset(getFluidValue(anim.to));
-
-    if (!anim.immediate) {
-      anim.fromValues = anim.values.map(node => node.lastPosition);
-    }
-
-    if (!isAnimating(this)) {
-      setActiveBit(this, true);
-
-      if (!isPaused(this)) {
-        this._resume();
-      }
-    }
-  }
-
-  _resume() {
-    if (globals.skipAnimation) {
-      this.finish();
-    } else {
-      frameLoop.start(this);
-    }
-  }
-
-  _stop(goal, cancel) {
-    if (isAnimating(this)) {
-      setActiveBit(this, false);
-      const anim = this.animation;
-      each(anim.values, node => {
-        node.done = true;
-      });
-
-      if (anim.toValues) {
-        anim.onChange = anim.onPause = anim.onResume = undefined;
-      }
-
-      callFluidObservers(this, {
-        type: 'idle',
-        parent: this
-      });
-      const result = cancel ? getCancelledResult(this.get()) : getFinishedResult(this.get(), checkFinished(this, goal != null ? goal : anim.to));
-      flushCalls(this._pendingCalls, result);
-
-      if (anim.changed) {
-        anim.changed = false;
-        sendEvent(this, 'onRest', result, this);
-      }
-    }
-  }
-
-}
-
-function checkFinished(target, to) {
-  const goal = computeGoal(to);
-  const value = computeGoal(target.get());
-  return isEqual(value, goal);
-}
-
-function createLoopUpdate(props, loop = props.loop, to = props.to) {
-  let loopRet = callProp(loop);
-
-  if (loopRet) {
-    const overrides = loopRet !== true && inferTo(loopRet);
-    const reverse = (overrides || props).reverse;
-    const reset = !overrides || overrides.reset;
-    return createUpdate(_extends({}, props, {
-      loop,
-      default: false,
-      pause: undefined,
-      to: !reverse || isAsyncTo(to) ? to : undefined,
-      from: reset ? props.from : undefined,
-      reset
-    }, overrides));
-  }
-}
-function createUpdate(props) {
-  const {
-    to,
-    from
-  } = props = inferTo(props);
-  const keys = new Set();
-  if (is.obj(to)) findDefined(to, keys);
-  if (is.obj(from)) findDefined(from, keys);
-  props.keys = keys.size ? Array.from(keys) : null;
-  return props;
-}
-function declareUpdate(props) {
-  const update = createUpdate(props);
-
-  if (is.und(update.default)) {
-    update.default = getDefaultProps(update);
-  }
-
-  return update;
-}
-
-function findDefined(values, keys) {
-  eachProp(values, (value, key) => value != null && keys.add(key));
-}
-
-const ACTIVE_EVENTS = ['onStart', 'onRest', 'onChange', 'onPause', 'onResume'];
-
-function mergeActiveFn(target, props, type) {
-  target.animation[type] = props[type] !== getDefaultProp(props, type) ? resolveProp(props[type], target.key) : undefined;
-}
-
-function sendEvent(target, type, ...args) {
-  var _target$animation$typ, _target$animation, _target$defaultProps$, _target$defaultProps;
-
-  (_target$animation$typ = (_target$animation = target.animation)[type]) == null ? void 0 : _target$animation$typ.call(_target$animation, ...args);
-  (_target$defaultProps$ = (_target$defaultProps = target.defaultProps)[type]) == null ? void 0 : _target$defaultProps$.call(_target$defaultProps, ...args);
-}
-
-const BATCHED_EVENTS = ['onStart', 'onChange', 'onRest'];
-let nextId = 1;
-class Controller {
-  constructor(props, flush) {
-    this.id = nextId++;
-    this.springs = {};
-    this.queue = [];
-    this.ref = void 0;
-    this._flush = void 0;
-    this._initialProps = void 0;
-    this._lastAsyncId = 0;
-    this._active = new Set();
-    this._changed = new Set();
-    this._started = false;
-    this._item = void 0;
-    this._state = {
-      paused: false,
-      pauseQueue: new Set(),
-      resumeQueue: new Set(),
-      timeouts: new Set()
-    };
-    this._events = {
-      onStart: new Map(),
-      onChange: new Map(),
-      onRest: new Map()
-    };
-    this._onFrame = this._onFrame.bind(this);
-
-    if (flush) {
-      this._flush = flush;
-    }
-
-    if (props) {
-      this.start(_extends({
-        default: true
-      }, props));
-    }
-  }
-
-  get idle() {
-    return !this._state.asyncTo && Object.values(this.springs).every(spring => {
-      return spring.idle && !spring.isDelayed && !spring.isPaused;
-    });
-  }
-
-  get item() {
-    return this._item;
-  }
-
-  set item(item) {
-    this._item = item;
-  }
-
-  get() {
-    const values = {};
-    this.each((spring, key) => values[key] = spring.get());
-    return values;
-  }
-
-  set(values) {
-    for (const key in values) {
-      const value = values[key];
-
-      if (!is.und(value)) {
-        this.springs[key].set(value);
-      }
-    }
-  }
-
-  update(props) {
-    if (props) {
-      this.queue.push(createUpdate(props));
-    }
-
-    return this;
-  }
-
-  start(props) {
-    let {
-      queue
-    } = this;
-
-    if (props) {
-      queue = toArray(props).map(createUpdate);
-    } else {
-      this.queue = [];
-    }
-
-    if (this._flush) {
-      return this._flush(this, queue);
-    }
-
-    prepareKeys(this, queue);
-    return flushUpdateQueue(this, queue);
-  }
-
-  stop(arg, keys) {
-    if (arg !== !!arg) {
-      keys = arg;
-    }
-
-    if (keys) {
-      const springs = this.springs;
-      each(toArray(keys), key => springs[key].stop(!!arg));
-    } else {
-      stopAsync(this._state, this._lastAsyncId);
-      this.each(spring => spring.stop(!!arg));
-    }
-
-    return this;
-  }
-
-  pause(keys) {
-    if (is.und(keys)) {
-      this.start({
-        pause: true
-      });
-    } else {
-      const springs = this.springs;
-      each(toArray(keys), key => springs[key].pause());
-    }
-
-    return this;
-  }
-
-  resume(keys) {
-    if (is.und(keys)) {
-      this.start({
-        pause: false
-      });
-    } else {
-      const springs = this.springs;
-      each(toArray(keys), key => springs[key].resume());
-    }
-
-    return this;
-  }
-
-  each(iterator) {
-    eachProp(this.springs, iterator);
-  }
-
-  _onFrame() {
-    const {
-      onStart,
-      onChange,
-      onRest
-    } = this._events;
-    const active = this._active.size > 0;
-    const changed = this._changed.size > 0;
-
-    if (active && !this._started || changed && !this._started) {
-      this._started = true;
-      flush(onStart, ([onStart, result]) => {
-        result.value = this.get();
-        onStart(result, this, this._item);
-      });
-    }
-
-    const idle = !active && this._started;
-    const values = changed || idle && onRest.size ? this.get() : null;
-
-    if (changed && onChange.size) {
-      flush(onChange, ([onChange, result]) => {
-        result.value = values;
-        onChange(result, this, this._item);
-      });
-    }
-
-    if (idle) {
-      this._started = false;
-      flush(onRest, ([onRest, result]) => {
-        result.value = values;
-        onRest(result, this, this._item);
-      });
-    }
-  }
-
-  eventObserved(event) {
-    if (event.type == 'change') {
-      this._changed.add(event.parent);
-
-      if (!event.idle) {
-        this._active.add(event.parent);
-      }
-    } else if (event.type == 'idle') {
-      this._active.delete(event.parent);
-    } else return;
-
-    raf.onFrame(this._onFrame);
-  }
-
-}
-function flushUpdateQueue(ctrl, queue) {
-  return Promise.all(queue.map(props => flushUpdate(ctrl, props))).then(results => getCombinedResult(ctrl, results));
-}
-async function flushUpdate(ctrl, props, isLoop) {
-  const {
-    keys,
-    to,
-    from,
-    loop,
-    onRest,
-    onResolve
-  } = props;
-  const defaults = is.obj(props.default) && props.default;
-
-  if (loop) {
-    props.loop = false;
-  }
-
-  if (to === false) props.to = null;
-  if (from === false) props.from = null;
-  const asyncTo = is.arr(to) || is.fun(to) ? to : undefined;
-
-  if (asyncTo) {
-    props.to = undefined;
-    props.onRest = undefined;
-
-    if (defaults) {
-      defaults.onRest = undefined;
-    }
-  } else {
-    each(BATCHED_EVENTS, key => {
-      const handler = props[key];
-
-      if (is.fun(handler)) {
-        const queue = ctrl['_events'][key];
-
-        props[key] = ({
-          finished,
-          cancelled
-        }) => {
-          const result = queue.get(handler);
-
-          if (result) {
-            if (!finished) result.finished = false;
-            if (cancelled) result.cancelled = true;
-          } else {
-            queue.set(handler, {
-              value: null,
-              finished: finished || false,
-              cancelled: cancelled || false
-            });
-          }
-        };
-
-        if (defaults) {
-          defaults[key] = props[key];
-        }
-      }
-    });
-  }
-
-  const state = ctrl['_state'];
-
-  if (props.pause === !state.paused) {
-    state.paused = props.pause;
-    flushCalls(props.pause ? state.pauseQueue : state.resumeQueue);
-  } else if (state.paused) {
-    props.pause = true;
-  }
-
-  const promises = (keys || Object.keys(ctrl.springs)).map(key => ctrl.springs[key].start(props));
-  const cancel = props.cancel === true || getDefaultProp(props, 'cancel') === true;
-
-  if (asyncTo || cancel && state.asyncId) {
-    promises.push(scheduleProps(++ctrl['_lastAsyncId'], {
-      props,
-      state,
-      actions: {
-        pause: noop,
-        resume: noop,
-
-        start(props, resolve) {
-          if (cancel) {
-            stopAsync(state, ctrl['_lastAsyncId']);
-            resolve(getCancelledResult(ctrl));
-          } else {
-            props.onRest = onRest;
-            resolve(runAsync(asyncTo, props, state, ctrl));
-          }
-        }
-
-      }
-    }));
-  }
-
-  if (state.paused) {
-    await new Promise(resume => {
-      state.resumeQueue.add(resume);
-    });
-  }
-
-  const result = getCombinedResult(ctrl, await Promise.all(promises));
-
-  if (loop && result.finished && !(isLoop && result.noop)) {
-    const nextProps = createLoopUpdate(props, loop, to);
-
-    if (nextProps) {
-      prepareKeys(ctrl, [nextProps]);
-      return flushUpdate(ctrl, nextProps, true);
-    }
-  }
-
-  if (onResolve) {
-    raf.batchedUpdates(() => onResolve(result, ctrl, ctrl.item));
-  }
-
-  return result;
-}
-function getSprings(ctrl, props) {
-  const springs = _extends({}, ctrl.springs);
-
-  if (props) {
-    each(toArray(props), props => {
-      if (is.und(props.keys)) {
-        props = createUpdate(props);
-      }
-
-      if (!is.obj(props.to)) {
-        props = _extends({}, props, {
-          to: undefined
-        });
-      }
-
-      prepareSprings(springs, props, key => {
-        return createSpring(key);
-      });
-    });
-  }
-
-  setSprings(ctrl, springs);
-  return springs;
-}
-function setSprings(ctrl, springs) {
-  eachProp(springs, (spring, key) => {
-    if (!ctrl.springs[key]) {
-      ctrl.springs[key] = spring;
-      addFluidObserver(spring, ctrl);
-    }
-  });
-}
-
-function createSpring(key, observer) {
-  const spring = new SpringValue();
-  spring.key = key;
-
-  if (observer) {
-    addFluidObserver(spring, observer);
-  }
-
-  return spring;
-}
-
-function prepareSprings(springs, props, create) {
-  if (props.keys) {
-    each(props.keys, key => {
-      const spring = springs[key] || (springs[key] = create(key));
-      spring['_prepareNode'](props);
-    });
-  }
-}
-
-function prepareKeys(ctrl, queue) {
-  each(queue, props => {
-    prepareSprings(ctrl.springs, props, key => {
-      return createSpring(key, ctrl);
-    });
-  });
-}
-
-function _objectWithoutPropertiesLoose$1(source, excluded) {
-  if (source == null) return {};
-  var target = {};
-  var sourceKeys = Object.keys(source);
-  var key, i;
-
-  for (i = 0; i < sourceKeys.length; i++) {
-    key = sourceKeys[i];
-    if (excluded.indexOf(key) >= 0) continue;
-    target[key] = source[key];
-  }
-
-  return target;
-}
-
-const _excluded$3 = ["children"];
-const SpringContext = _ref => {
-  let {
-    children
-  } = _ref,
-      props = _objectWithoutPropertiesLoose$1(_ref, _excluded$3);
-
-  const inherited = React.useContext(ctx);
-  const pause = props.pause || !!inherited.pause,
-        immediate = props.immediate || !!inherited.immediate;
-  props = useMemoOne(() => ({
-    pause,
-    immediate
-  }), [pause, immediate]);
-  const {
-    Provider
-  } = ctx;
-  return React__namespace.createElement(Provider, {
-    value: props
-  }, children);
-};
-const ctx = makeContext(SpringContext, {});
-SpringContext.Provider = ctx.Provider;
-SpringContext.Consumer = ctx.Consumer;
-
-function makeContext(target, init) {
-  Object.assign(target, React__namespace.createContext(init));
-  target.Provider._context = target;
-  target.Consumer._context = target;
-  return target;
-}
-
-const SpringRef = () => {
-  const current = [];
-
-  const SpringRef = function SpringRef(props) {
-    deprecateDirectCall();
-    const results = [];
-    each(current, (ctrl, i) => {
-      if (is.und(props)) {
-        results.push(ctrl.start());
-      } else {
-        const update = _getProps(props, ctrl, i);
-
-        if (update) {
-          results.push(ctrl.start(update));
-        }
-      }
-    });
-    return results;
-  };
-
-  SpringRef.current = current;
-
-  SpringRef.add = function (ctrl) {
-    if (!current.includes(ctrl)) {
-      current.push(ctrl);
-    }
-  };
-
-  SpringRef.delete = function (ctrl) {
-    const i = current.indexOf(ctrl);
-    if (~i) current.splice(i, 1);
-  };
-
-  SpringRef.pause = function () {
-    each(current, ctrl => ctrl.pause(...arguments));
-    return this;
-  };
-
-  SpringRef.resume = function () {
-    each(current, ctrl => ctrl.resume(...arguments));
-    return this;
-  };
-
-  SpringRef.set = function (values) {
-    each(current, ctrl => ctrl.set(values));
-  };
-
-  SpringRef.start = function (props) {
-    const results = [];
-    each(current, (ctrl, i) => {
-      if (is.und(props)) {
-        results.push(ctrl.start());
-      } else {
-        const update = this._getProps(props, ctrl, i);
-
-        if (update) {
-          results.push(ctrl.start(update));
-        }
-      }
-    });
-    return results;
-  };
-
-  SpringRef.stop = function () {
-    each(current, ctrl => ctrl.stop(...arguments));
-    return this;
-  };
-
-  SpringRef.update = function (props) {
-    each(current, (ctrl, i) => ctrl.update(this._getProps(props, ctrl, i)));
-    return this;
-  };
-
-  const _getProps = function _getProps(arg, ctrl, index) {
-    return is.fun(arg) ? arg(index, ctrl) : arg;
-  };
-
-  SpringRef._getProps = _getProps;
-  return SpringRef;
-};
-
-function useSprings(length, props, deps) {
-  const propsFn = is.fun(props) && props;
-  if (propsFn && !deps) deps = [];
-  const ref = React.useMemo(() => propsFn || arguments.length == 3 ? SpringRef() : void 0, []);
-  const layoutId = React.useRef(0);
-  const forceUpdate = useForceUpdate();
-  const state = React.useMemo(() => ({
-    ctrls: [],
-    queue: [],
-
-    flush(ctrl, updates) {
-      const springs = getSprings(ctrl, updates);
-      const canFlushSync = layoutId.current > 0 && !state.queue.length && !Object.keys(springs).some(key => !ctrl.springs[key]);
-      return canFlushSync ? flushUpdateQueue(ctrl, updates) : new Promise(resolve => {
-        setSprings(ctrl, springs);
-        state.queue.push(() => {
-          resolve(flushUpdateQueue(ctrl, updates));
-        });
-        forceUpdate();
-      });
-    }
-
-  }), []);
-  const ctrls = React.useRef([...state.ctrls]);
-  const updates = [];
-  const prevLength = usePrev(length) || 0;
-  React.useMemo(() => {
-    each(ctrls.current.slice(length, prevLength), ctrl => {
-      detachRefs(ctrl, ref);
-      ctrl.stop(true);
-    });
-    ctrls.current.length = length;
-    declareUpdates(prevLength, length);
-  }, [length]);
-  React.useMemo(() => {
-    declareUpdates(0, Math.min(prevLength, length));
-  }, deps);
-
-  function declareUpdates(startIndex, endIndex) {
-    for (let i = startIndex; i < endIndex; i++) {
-      const ctrl = ctrls.current[i] || (ctrls.current[i] = new Controller(null, state.flush));
-      const update = propsFn ? propsFn(i, ctrl) : props[i];
-
-      if (update) {
-        updates[i] = declareUpdate(update);
-      }
-    }
-  }
-
-  const springs = ctrls.current.map((ctrl, i) => getSprings(ctrl, updates[i]));
-  const context = React.useContext(SpringContext);
-  const prevContext = usePrev(context);
-  const hasContext = context !== prevContext && hasProps(context);
-  useIsomorphicLayoutEffect(() => {
-    layoutId.current++;
-    state.ctrls = ctrls.current;
-    const {
-      queue
-    } = state;
-
-    if (queue.length) {
-      state.queue = [];
-      each(queue, cb => cb());
-    }
-
-    each(ctrls.current, (ctrl, i) => {
-      ref == null ? void 0 : ref.add(ctrl);
-
-      if (hasContext) {
-        ctrl.start({
-          default: context
-        });
-      }
-
-      const update = updates[i];
-
-      if (update) {
-        replaceRef(ctrl, update.ref);
-
-        if (ctrl.ref) {
-          ctrl.queue.push(update);
-        } else {
-          ctrl.start(update);
-        }
-      }
-    });
-  });
-  useOnce(() => () => {
-    each(state.ctrls, ctrl => ctrl.stop(true));
-  });
-  const values = springs.map(x => _extends({}, x));
-  return ref ? [values, ref] : values;
-}
-
-function useSpring(props, deps) {
-  const isFn = is.fun(props);
-  const [[values], ref] = useSprings(1, isFn ? props : [props], isFn ? deps || [] : deps);
-  return isFn || arguments.length == 2 ? [values, ref] : values;
-}
-
-let TransitionPhase;
-
-(function (TransitionPhase) {
-  TransitionPhase["MOUNT"] = "mount";
-  TransitionPhase["ENTER"] = "enter";
-  TransitionPhase["UPDATE"] = "update";
-  TransitionPhase["LEAVE"] = "leave";
-})(TransitionPhase || (TransitionPhase = {}));
-
-class Interpolation extends FrameValue {
-  constructor(source, args) {
-    super();
-    this.key = void 0;
-    this.idle = true;
-    this.calc = void 0;
-    this._active = new Set();
-    this.source = source;
-    this.calc = createInterpolator(...args);
-
-    const value = this._get();
-
-    const nodeType = getAnimatedType(value);
-    setAnimated(this, nodeType.create(value));
-  }
-
-  advance(_dt) {
-    const value = this._get();
-
-    const oldValue = this.get();
-
-    if (!isEqual(value, oldValue)) {
-      getAnimated(this).setValue(value);
-
-      this._onChange(value, this.idle);
-    }
-
-    if (!this.idle && checkIdle(this._active)) {
-      becomeIdle(this);
-    }
-  }
-
-  _get() {
-    const inputs = is.arr(this.source) ? this.source.map(getFluidValue) : toArray(getFluidValue(this.source));
-    return this.calc(...inputs);
-  }
-
-  _start() {
-    if (this.idle && !checkIdle(this._active)) {
-      this.idle = false;
-      each(getPayload(this), node => {
-        node.done = false;
-      });
-
-      if (globals.skipAnimation) {
-        raf.batchedUpdates(() => this.advance());
-        becomeIdle(this);
-      } else {
-        frameLoop.start(this);
-      }
-    }
-  }
-
-  _attach() {
-    let priority = 1;
-    each(toArray(this.source), source => {
-      if (hasFluidValue(source)) {
-        addFluidObserver(source, this);
-      }
-
-      if (isFrameValue(source)) {
-        if (!source.idle) {
-          this._active.add(source);
-        }
-
-        priority = Math.max(priority, source.priority + 1);
-      }
-    });
-    this.priority = priority;
-
-    this._start();
-  }
-
-  _detach() {
-    each(toArray(this.source), source => {
-      if (hasFluidValue(source)) {
-        removeFluidObserver(source, this);
-      }
-    });
-
-    this._active.clear();
-
-    becomeIdle(this);
-  }
-
-  eventObserved(event) {
-    if (event.type == 'change') {
-      if (event.idle) {
-        this.advance();
-      } else {
-        this._active.add(event.parent);
-
-        this._start();
-      }
-    } else if (event.type == 'idle') {
-      this._active.delete(event.parent);
-    } else if (event.type == 'priority') {
-      this.priority = toArray(this.source).reduce((highest, parent) => Math.max(highest, (isFrameValue(parent) ? parent.priority : 0) + 1), 0);
-    }
-  }
-
-}
-
-function isIdle(source) {
-  return source.idle !== false;
-}
-
-function checkIdle(active) {
-  return !active.size || Array.from(active).every(isIdle);
-}
-
-function becomeIdle(self) {
-  if (!self.idle) {
-    self.idle = true;
-    each(getPayload(self), node => {
-      node.done = true;
-    });
-    callFluidObservers(self, {
-      type: 'idle',
-      parent: self
-    });
-  }
-}
-
-globals.assign({
-  createStringInterpolator,
-  to: (source, args) => new Interpolation(source, args)
-});
-
-function _objectWithoutPropertiesLoose(source, excluded) {
-  if (source == null) return {};
-  var target = {};
-  var sourceKeys = Object.keys(source);
-  var key, i;
-
-  for (i = 0; i < sourceKeys.length; i++) {
-    key = sourceKeys[i];
-    if (excluded.indexOf(key) >= 0) continue;
-    target[key] = source[key];
-  }
-
-  return target;
-}
-
-const _excluded$2 = ["style", "children", "scrollTop", "scrollLeft"];
-const isCustomPropRE = /^--/;
-
-function dangerousStyleValue(name, value) {
-  if (value == null || typeof value === 'boolean' || value === '') return '';
-  if (typeof value === 'number' && value !== 0 && !isCustomPropRE.test(name) && !(isUnitlessNumber.hasOwnProperty(name) && isUnitlessNumber[name])) return value + 'px';
-  return ('' + value).trim();
-}
-
-const attributeCache = {};
-function applyAnimatedValues(instance, props) {
-  if (!instance.nodeType || !instance.setAttribute) {
-    return false;
-  }
-
-  const isFilterElement = instance.nodeName === 'filter' || instance.parentNode && instance.parentNode.nodeName === 'filter';
-
-  const _ref = props,
-        {
-    style,
-    children,
-    scrollTop,
-    scrollLeft
-  } = _ref,
-        attributes = _objectWithoutPropertiesLoose(_ref, _excluded$2);
-
-  const values = Object.values(attributes);
-  const names = Object.keys(attributes).map(name => isFilterElement || instance.hasAttribute(name) ? name : attributeCache[name] || (attributeCache[name] = name.replace(/([A-Z])/g, n => '-' + n.toLowerCase())));
-
-  if (children !== void 0) {
-    instance.textContent = children;
-  }
-
-  for (let name in style) {
-    if (style.hasOwnProperty(name)) {
-      const value = dangerousStyleValue(name, style[name]);
-
-      if (isCustomPropRE.test(name)) {
-        instance.style.setProperty(name, value);
-      } else {
-        instance.style[name] = value;
-      }
-    }
-  }
-
-  names.forEach((name, i) => {
-    instance.setAttribute(name, values[i]);
-  });
-
-  if (scrollTop !== void 0) {
-    instance.scrollTop = scrollTop;
-  }
-
-  if (scrollLeft !== void 0) {
-    instance.scrollLeft = scrollLeft;
-  }
-}
-let isUnitlessNumber = {
-  animationIterationCount: true,
-  borderImageOutset: true,
-  borderImageSlice: true,
-  borderImageWidth: true,
-  boxFlex: true,
-  boxFlexGroup: true,
-  boxOrdinalGroup: true,
-  columnCount: true,
-  columns: true,
-  flex: true,
-  flexGrow: true,
-  flexPositive: true,
-  flexShrink: true,
-  flexNegative: true,
-  flexOrder: true,
-  gridRow: true,
-  gridRowEnd: true,
-  gridRowSpan: true,
-  gridRowStart: true,
-  gridColumn: true,
-  gridColumnEnd: true,
-  gridColumnSpan: true,
-  gridColumnStart: true,
-  fontWeight: true,
-  lineClamp: true,
-  lineHeight: true,
-  opacity: true,
-  order: true,
-  orphans: true,
-  tabSize: true,
-  widows: true,
-  zIndex: true,
-  zoom: true,
-  fillOpacity: true,
-  floodOpacity: true,
-  stopOpacity: true,
-  strokeDasharray: true,
-  strokeDashoffset: true,
-  strokeMiterlimit: true,
-  strokeOpacity: true,
-  strokeWidth: true
-};
-
-const prefixKey = (prefix, key) => prefix + key.charAt(0).toUpperCase() + key.substring(1);
-
-const prefixes = ['Webkit', 'Ms', 'Moz', 'O'];
-isUnitlessNumber = Object.keys(isUnitlessNumber).reduce((acc, prop) => {
-  prefixes.forEach(prefix => acc[prefixKey(prefix, prop)] = acc[prop]);
-  return acc;
-}, isUnitlessNumber);
-
-const _excluded$1 = ["x", "y", "z"];
-const domTransforms = /^(matrix|translate|scale|rotate|skew)/;
-const pxTransforms = /^(translate)/;
-const degTransforms = /^(rotate|skew)/;
-
-const addUnit = (value, unit) => is.num(value) && value !== 0 ? value + unit : value;
-
-const isValueIdentity = (value, id) => is.arr(value) ? value.every(v => isValueIdentity(v, id)) : is.num(value) ? value === id : parseFloat(value) === id;
-
-class AnimatedStyle extends AnimatedObject {
-  constructor(_ref) {
-    let {
-      x,
-      y,
-      z
-    } = _ref,
-        style = _objectWithoutPropertiesLoose(_ref, _excluded$1);
-
-    const inputs = [];
-    const transforms = [];
-
-    if (x || y || z) {
-      inputs.push([x || 0, y || 0, z || 0]);
-      transforms.push(xyz => [`translate3d(${xyz.map(v => addUnit(v, 'px')).join(',')})`, isValueIdentity(xyz, 0)]);
-    }
-
-    eachProp(style, (value, key) => {
-      if (key === 'transform') {
-        inputs.push([value || '']);
-        transforms.push(transform => [transform, transform === '']);
-      } else if (domTransforms.test(key)) {
-        delete style[key];
-        if (is.und(value)) return;
-        const unit = pxTransforms.test(key) ? 'px' : degTransforms.test(key) ? 'deg' : '';
-        inputs.push(toArray(value));
-        transforms.push(key === 'rotate3d' ? ([x, y, z, deg]) => [`rotate3d(${x},${y},${z},${addUnit(deg, unit)})`, isValueIdentity(deg, 0)] : input => [`${key}(${input.map(v => addUnit(v, unit)).join(',')})`, isValueIdentity(input, key.startsWith('scale') ? 1 : 0)]);
-      }
-    });
-
-    if (inputs.length) {
-      style.transform = new FluidTransform(inputs, transforms);
-    }
-
-    super(style);
-  }
-
-}
-
-class FluidTransform extends FluidValue {
-  constructor(inputs, transforms) {
-    super();
-    this._value = null;
-    this.inputs = inputs;
-    this.transforms = transforms;
-  }
-
-  get() {
-    return this._value || (this._value = this._get());
-  }
-
-  _get() {
-    let transform = '';
-    let identity = true;
-    each(this.inputs, (input, i) => {
-      const arg1 = getFluidValue(input[0]);
-      const [t, id] = this.transforms[i](is.arr(arg1) ? arg1 : input.map(getFluidValue));
-      transform += ' ' + t;
-      identity = identity && id;
-    });
-    return identity ? 'none' : transform;
-  }
-
-  observerAdded(count) {
-    if (count == 1) each(this.inputs, input => each(input, value => hasFluidValue(value) && addFluidObserver(value, this)));
-  }
-
-  observerRemoved(count) {
-    if (count == 0) each(this.inputs, input => each(input, value => hasFluidValue(value) && removeFluidObserver(value, this)));
-  }
-
-  eventObserved(event) {
-    if (event.type == 'change') {
-      this._value = null;
-    }
-
-    callFluidObservers(this, event);
-  }
-
-}
-
-const primitives = ['a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo', 'big', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'menu', 'menuitem', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script', 'section', 'select', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video', 'wbr', 'circle', 'clipPath', 'defs', 'ellipse', 'foreignObject', 'g', 'image', 'line', 'linearGradient', 'mask', 'path', 'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'stop', 'svg', 'text', 'tspan'];
-
-const _excluded = ["scrollTop", "scrollLeft"];
-globals.assign({
-  batchedUpdates: reactDom.unstable_batchedUpdates,
-  createStringInterpolator,
-  colors: colors$2
-});
-const host = createHost(primitives, {
-  applyAnimatedValues,
-  createAnimatedStyle: style => new AnimatedStyle(style),
-  getComponentProps: _ref => {
-    let props = _objectWithoutPropertiesLoose(_ref, _excluded);
-
-    return props;
-  }
-});
-const animated = host.animated;
-
 var ANIMATION = {
   BOTTOM: 'from bottom',
   RIGHT_SIDE: 'from right side'
@@ -3849,11 +136,11 @@ var ANIMATION = {
 
 var img$4 = "data:image/png;base64,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";
 
-var reactIs$1 = {exports: {}};
+var reactIs$2 = {exports: {}};
 
-var reactIs_production_min = {};
+var reactIs_production_min$1 = {};
 
-/** @license React v16.13.1
+/** @license React v17.0.2
  * react-is.production.min.js
  *
  * Copyright (c) Facebook, Inc. and its affiliates.
@@ -3862,23 +149,23 @@ var reactIs_production_min = {};
  * LICENSE file in the root directory of this source tree.
  */
 
-var hasRequiredReactIs_production_min;
+var hasRequiredReactIs_production_min$1;
 
-function requireReactIs_production_min () {
-	if (hasRequiredReactIs_production_min) return reactIs_production_min;
-	hasRequiredReactIs_production_min = 1;
-var b="function"===typeof Symbol&&Symbol.for,c=b?Symbol.for("react.element"):60103,d=b?Symbol.for("react.portal"):60106,e=b?Symbol.for("react.fragment"):60107,f=b?Symbol.for("react.strict_mode"):60108,g=b?Symbol.for("react.profiler"):60114,h=b?Symbol.for("react.provider"):60109,k=b?Symbol.for("react.context"):60110,l=b?Symbol.for("react.async_mode"):60111,m=b?Symbol.for("react.concurrent_mode"):60111,n=b?Symbol.for("react.forward_ref"):60112,p=b?Symbol.for("react.suspense"):60113,q=b?
-	Symbol.for("react.suspense_list"):60120,r=b?Symbol.for("react.memo"):60115,t=b?Symbol.for("react.lazy"):60116,v=b?Symbol.for("react.block"):60121,w=b?Symbol.for("react.fundamental"):60117,x=b?Symbol.for("react.responder"):60118,y=b?Symbol.for("react.scope"):60119;
-	function z(a){if("object"===typeof a&&null!==a){var u=a.$$typeof;switch(u){case c:switch(a=a.type,a){case l:case m:case e:case g:case f:case p:return a;default:switch(a=a&&a.$$typeof,a){case k:case n:case t:case r:case h:return a;default:return u}}case d:return u}}}function A(a){return z(a)===m}reactIs_production_min.AsyncMode=l;reactIs_production_min.ConcurrentMode=m;reactIs_production_min.ContextConsumer=k;reactIs_production_min.ContextProvider=h;reactIs_production_min.Element=c;reactIs_production_min.ForwardRef=n;reactIs_production_min.Fragment=e;reactIs_production_min.Lazy=t;reactIs_production_min.Memo=r;reactIs_production_min.Portal=d;
-	reactIs_production_min.Profiler=g;reactIs_production_min.StrictMode=f;reactIs_production_min.Suspense=p;reactIs_production_min.isAsyncMode=function(a){return A(a)||z(a)===l};reactIs_production_min.isConcurrentMode=A;reactIs_production_min.isContextConsumer=function(a){return z(a)===k};reactIs_production_min.isContextProvider=function(a){return z(a)===h};reactIs_production_min.isElement=function(a){return "object"===typeof a&&null!==a&&a.$$typeof===c};reactIs_production_min.isForwardRef=function(a){return z(a)===n};reactIs_production_min.isFragment=function(a){return z(a)===e};reactIs_production_min.isLazy=function(a){return z(a)===t};
-	reactIs_production_min.isMemo=function(a){return z(a)===r};reactIs_production_min.isPortal=function(a){return z(a)===d};reactIs_production_min.isProfiler=function(a){return z(a)===g};reactIs_production_min.isStrictMode=function(a){return z(a)===f};reactIs_production_min.isSuspense=function(a){return z(a)===p};
-	reactIs_production_min.isValidElementType=function(a){return "string"===typeof a||"function"===typeof a||a===e||a===m||a===g||a===f||a===p||a===q||"object"===typeof a&&null!==a&&(a.$$typeof===t||a.$$typeof===r||a.$$typeof===h||a.$$typeof===k||a.$$typeof===n||a.$$typeof===w||a.$$typeof===x||a.$$typeof===y||a.$$typeof===v)};reactIs_production_min.typeOf=z;
-	return reactIs_production_min;
+function requireReactIs_production_min$1 () {
+	if (hasRequiredReactIs_production_min$1) return reactIs_production_min$1;
+	hasRequiredReactIs_production_min$1 = 1;
+var b=60103,c=60106,d=60107,e=60108,f=60114,g=60109,h=60110,k=60112,l=60113,m=60120,n=60115,p=60116,q=60121,r=60122,u=60117,v=60129,w=60131;
+	if("function"===typeof Symbol&&Symbol.for){var x=Symbol.for;b=x("react.element");c=x("react.portal");d=x("react.fragment");e=x("react.strict_mode");f=x("react.profiler");g=x("react.provider");h=x("react.context");k=x("react.forward_ref");l=x("react.suspense");m=x("react.suspense_list");n=x("react.memo");p=x("react.lazy");q=x("react.block");r=x("react.server.block");u=x("react.fundamental");v=x("react.debug_trace_mode");w=x("react.legacy_hidden");}
+	function y(a){if("object"===typeof a&&null!==a){var t=a.$$typeof;switch(t){case b:switch(a=a.type,a){case d:case f:case e:case l:case m:return a;default:switch(a=a&&a.$$typeof,a){case h:case k:case p:case n:case g:return a;default:return t}}case c:return t}}}var z=g,A=b,B=k,C=d,D=p,E=n,F=c,G=f,H=e,I=l;reactIs_production_min$1.ContextConsumer=h;reactIs_production_min$1.ContextProvider=z;reactIs_production_min$1.Element=A;reactIs_production_min$1.ForwardRef=B;reactIs_production_min$1.Fragment=C;reactIs_production_min$1.Lazy=D;reactIs_production_min$1.Memo=E;reactIs_production_min$1.Portal=F;reactIs_production_min$1.Profiler=G;reactIs_production_min$1.StrictMode=H;
+	reactIs_production_min$1.Suspense=I;reactIs_production_min$1.isAsyncMode=function(){return !1};reactIs_production_min$1.isConcurrentMode=function(){return !1};reactIs_production_min$1.isContextConsumer=function(a){return y(a)===h};reactIs_production_min$1.isContextProvider=function(a){return y(a)===g};reactIs_production_min$1.isElement=function(a){return "object"===typeof a&&null!==a&&a.$$typeof===b};reactIs_production_min$1.isForwardRef=function(a){return y(a)===k};reactIs_production_min$1.isFragment=function(a){return y(a)===d};reactIs_production_min$1.isLazy=function(a){return y(a)===p};reactIs_production_min$1.isMemo=function(a){return y(a)===n};
+	reactIs_production_min$1.isPortal=function(a){return y(a)===c};reactIs_production_min$1.isProfiler=function(a){return y(a)===f};reactIs_production_min$1.isStrictMode=function(a){return y(a)===e};reactIs_production_min$1.isSuspense=function(a){return y(a)===l};reactIs_production_min$1.isValidElementType=function(a){return "string"===typeof a||"function"===typeof a||a===d||a===f||a===v||a===e||a===l||a===m||a===w||"object"===typeof a&&null!==a&&(a.$$typeof===p||a.$$typeof===n||a.$$typeof===g||a.$$typeof===h||a.$$typeof===k||a.$$typeof===u||a.$$typeof===q||a[0]===r)?!0:!1};
+	reactIs_production_min$1.typeOf=y;
+	return reactIs_production_min$1;
 }
 
-var reactIs_development = {};
+var reactIs_development$1 = {};
 
-/** @license React v16.13.1
+/** @license React v17.0.2
  * react-is.development.js
  *
  * Copyright (c) Facebook, Inc. and its affiliates.
@@ -3887,44 +174,83 @@ var reactIs_development = {};
  * LICENSE file in the root directory of this source tree.
  */
 
-var hasRequiredReactIs_development;
+var hasRequiredReactIs_development$1;
 
-function requireReactIs_development () {
-	if (hasRequiredReactIs_development) return reactIs_development;
-	hasRequiredReactIs_development = 1;
-
-
+function requireReactIs_development$1 () {
+	if (hasRequiredReactIs_development$1) return reactIs_development$1;
+	hasRequiredReactIs_development$1 = 1;
 
 	if (process.env.NODE_ENV !== "production") {
 	  (function() {
 
+	// ATTENTION
+	// When adding new symbols to this file,
+	// Please consider also adding to 'react-devtools-shared/src/backend/ReactSymbols'
 	// The Symbol used to tag the ReactElement-like types. If there is no native Symbol
 	// nor polyfill, then a plain number is used for performance.
-	var hasSymbol = typeof Symbol === 'function' && Symbol.for;
-	var REACT_ELEMENT_TYPE = hasSymbol ? Symbol.for('react.element') : 0xeac7;
-	var REACT_PORTAL_TYPE = hasSymbol ? Symbol.for('react.portal') : 0xeaca;
-	var REACT_FRAGMENT_TYPE = hasSymbol ? Symbol.for('react.fragment') : 0xeacb;
-	var REACT_STRICT_MODE_TYPE = hasSymbol ? Symbol.for('react.strict_mode') : 0xeacc;
-	var REACT_PROFILER_TYPE = hasSymbol ? Symbol.for('react.profiler') : 0xead2;
-	var REACT_PROVIDER_TYPE = hasSymbol ? Symbol.for('react.provider') : 0xeacd;
-	var REACT_CONTEXT_TYPE = hasSymbol ? Symbol.for('react.context') : 0xeace; // TODO: We don't use AsyncMode or ConcurrentMode anymore. They were temporary
-	// (unstable) APIs that have been removed. Can we remove the symbols?
+	var REACT_ELEMENT_TYPE = 0xeac7;
+	var REACT_PORTAL_TYPE = 0xeaca;
+	var REACT_FRAGMENT_TYPE = 0xeacb;
+	var REACT_STRICT_MODE_TYPE = 0xeacc;
+	var REACT_PROFILER_TYPE = 0xead2;
+	var REACT_PROVIDER_TYPE = 0xeacd;
+	var REACT_CONTEXT_TYPE = 0xeace;
+	var REACT_FORWARD_REF_TYPE = 0xead0;
+	var REACT_SUSPENSE_TYPE = 0xead1;
+	var REACT_SUSPENSE_LIST_TYPE = 0xead8;
+	var REACT_MEMO_TYPE = 0xead3;
+	var REACT_LAZY_TYPE = 0xead4;
+	var REACT_BLOCK_TYPE = 0xead9;
+	var REACT_SERVER_BLOCK_TYPE = 0xeada;
+	var REACT_FUNDAMENTAL_TYPE = 0xead5;
+	var REACT_DEBUG_TRACING_MODE_TYPE = 0xeae1;
+	var REACT_LEGACY_HIDDEN_TYPE = 0xeae3;
 
-	var REACT_ASYNC_MODE_TYPE = hasSymbol ? Symbol.for('react.async_mode') : 0xeacf;
-	var REACT_CONCURRENT_MODE_TYPE = hasSymbol ? Symbol.for('react.concurrent_mode') : 0xeacf;
-	var REACT_FORWARD_REF_TYPE = hasSymbol ? Symbol.for('react.forward_ref') : 0xead0;
-	var REACT_SUSPENSE_TYPE = hasSymbol ? Symbol.for('react.suspense') : 0xead1;
-	var REACT_SUSPENSE_LIST_TYPE = hasSymbol ? Symbol.for('react.suspense_list') : 0xead8;
-	var REACT_MEMO_TYPE = hasSymbol ? Symbol.for('react.memo') : 0xead3;
-	var REACT_LAZY_TYPE = hasSymbol ? Symbol.for('react.lazy') : 0xead4;
-	var REACT_BLOCK_TYPE = hasSymbol ? Symbol.for('react.block') : 0xead9;
-	var REACT_FUNDAMENTAL_TYPE = hasSymbol ? Symbol.for('react.fundamental') : 0xead5;
-	var REACT_RESPONDER_TYPE = hasSymbol ? Symbol.for('react.responder') : 0xead6;
-	var REACT_SCOPE_TYPE = hasSymbol ? Symbol.for('react.scope') : 0xead7;
+	if (typeof Symbol === 'function' && Symbol.for) {
+	  var symbolFor = Symbol.for;
+	  REACT_ELEMENT_TYPE = symbolFor('react.element');
+	  REACT_PORTAL_TYPE = symbolFor('react.portal');
+	  REACT_FRAGMENT_TYPE = symbolFor('react.fragment');
+	  REACT_STRICT_MODE_TYPE = symbolFor('react.strict_mode');
+	  REACT_PROFILER_TYPE = symbolFor('react.profiler');
+	  REACT_PROVIDER_TYPE = symbolFor('react.provider');
+	  REACT_CONTEXT_TYPE = symbolFor('react.context');
+	  REACT_FORWARD_REF_TYPE = symbolFor('react.forward_ref');
+	  REACT_SUSPENSE_TYPE = symbolFor('react.suspense');
+	  REACT_SUSPENSE_LIST_TYPE = symbolFor('react.suspense_list');
+	  REACT_MEMO_TYPE = symbolFor('react.memo');
+	  REACT_LAZY_TYPE = symbolFor('react.lazy');
+	  REACT_BLOCK_TYPE = symbolFor('react.block');
+	  REACT_SERVER_BLOCK_TYPE = symbolFor('react.server.block');
+	  REACT_FUNDAMENTAL_TYPE = symbolFor('react.fundamental');
+	  symbolFor('react.scope');
+	  symbolFor('react.opaque.id');
+	  REACT_DEBUG_TRACING_MODE_TYPE = symbolFor('react.debug_trace_mode');
+	  symbolFor('react.offscreen');
+	  REACT_LEGACY_HIDDEN_TYPE = symbolFor('react.legacy_hidden');
+	}
+
+	// Filter certain DOM attributes (e.g. src, href) if their values are empty strings.
+
+	var enableScopeAPI = false; // Experimental Create Event Handle API.
 
 	function isValidElementType(type) {
-	  return typeof type === 'string' || typeof type === 'function' || // Note: its typeof might be other than 'symbol' or 'number' if it's a polyfill.
-	  type === REACT_FRAGMENT_TYPE || type === REACT_CONCURRENT_MODE_TYPE || type === REACT_PROFILER_TYPE || type === REACT_STRICT_MODE_TYPE || type === REACT_SUSPENSE_TYPE || type === REACT_SUSPENSE_LIST_TYPE || typeof type === 'object' && type !== null && (type.$$typeof === REACT_LAZY_TYPE || type.$$typeof === REACT_MEMO_TYPE || type.$$typeof === REACT_PROVIDER_TYPE || type.$$typeof === REACT_CONTEXT_TYPE || type.$$typeof === REACT_FORWARD_REF_TYPE || type.$$typeof === REACT_FUNDAMENTAL_TYPE || type.$$typeof === REACT_RESPONDER_TYPE || type.$$typeof === REACT_SCOPE_TYPE || type.$$typeof === REACT_BLOCK_TYPE);
+	  if (typeof type === 'string' || typeof type === 'function') {
+	    return true;
+	  } // Note: typeof might be other than 'symbol' or 'number' (e.g. if it's a polyfill).
+
+
+	  if (type === REACT_FRAGMENT_TYPE || type === REACT_PROFILER_TYPE || type === REACT_DEBUG_TRACING_MODE_TYPE || type === REACT_STRICT_MODE_TYPE || type === REACT_SUSPENSE_TYPE || type === REACT_SUSPENSE_LIST_TYPE || type === REACT_LEGACY_HIDDEN_TYPE || enableScopeAPI ) {
+	    return true;
+	  }
+
+	  if (typeof type === 'object' && type !== null) {
+	    if (type.$$typeof === REACT_LAZY_TYPE || type.$$typeof === REACT_MEMO_TYPE || type.$$typeof === REACT_PROVIDER_TYPE || type.$$typeof === REACT_CONTEXT_TYPE || type.$$typeof === REACT_FORWARD_REF_TYPE || type.$$typeof === REACT_FUNDAMENTAL_TYPE || type.$$typeof === REACT_BLOCK_TYPE || type[0] === REACT_SERVER_BLOCK_TYPE) {
+	      return true;
+	    }
+	  }
+
+	  return false;
 	}
 
 	function typeOf(object) {
@@ -3936,12 +262,11 @@ function requireReactIs_development () {
 	        var type = object.type;
 
 	        switch (type) {
-	          case REACT_ASYNC_MODE_TYPE:
-	          case REACT_CONCURRENT_MODE_TYPE:
 	          case REACT_FRAGMENT_TYPE:
 	          case REACT_PROFILER_TYPE:
 	          case REACT_STRICT_MODE_TYPE:
 	          case REACT_SUSPENSE_TYPE:
+	          case REACT_SUSPENSE_LIST_TYPE:
 	            return type;
 
 	          default:
@@ -3967,10 +292,7 @@ function requireReactIs_development () {
 	  }
 
 	  return undefined;
-	} // AsyncMode is deprecated along with isAsyncMode
-
-	var AsyncMode = REACT_ASYNC_MODE_TYPE;
-	var ConcurrentMode = REACT_CONCURRENT_MODE_TYPE;
+	}
 	var ContextConsumer = REACT_CONTEXT_TYPE;
 	var ContextProvider = REACT_PROVIDER_TYPE;
 	var Element = REACT_ELEMENT_TYPE;
@@ -3982,21 +304,30 @@ function requireReactIs_development () {
 	var Profiler = REACT_PROFILER_TYPE;
 	var StrictMode = REACT_STRICT_MODE_TYPE;
 	var Suspense = REACT_SUSPENSE_TYPE;
-	var hasWarnedAboutDeprecatedIsAsyncMode = false; // AsyncMode should be deprecated
+	var hasWarnedAboutDeprecatedIsAsyncMode = false;
+	var hasWarnedAboutDeprecatedIsConcurrentMode = false; // AsyncMode should be deprecated
 
 	function isAsyncMode(object) {
 	  {
 	    if (!hasWarnedAboutDeprecatedIsAsyncMode) {
 	      hasWarnedAboutDeprecatedIsAsyncMode = true; // Using console['warn'] to evade Babel and ESLint
 
-	      console['warn']('The ReactIs.isAsyncMode() alias has been deprecated, ' + 'and will be removed in React 17+. Update your code to use ' + 'ReactIs.isConcurrentMode() instead. It has the exact same API.');
+	      console['warn']('The ReactIs.isAsyncMode() alias has been deprecated, ' + 'and will be removed in React 18+.');
 	    }
 	  }
 
-	  return isConcurrentMode(object) || typeOf(object) === REACT_ASYNC_MODE_TYPE;
+	  return false;
 	}
 	function isConcurrentMode(object) {
-	  return typeOf(object) === REACT_CONCURRENT_MODE_TYPE;
+	  {
+	    if (!hasWarnedAboutDeprecatedIsConcurrentMode) {
+	      hasWarnedAboutDeprecatedIsConcurrentMode = true; // Using console['warn'] to evade Babel and ESLint
+
+	      console['warn']('The ReactIs.isConcurrentMode() alias has been deprecated, ' + 'and will be removed in React 18+.');
+	    }
+	  }
+
+	  return false;
 	}
 	function isContextConsumer(object) {
 	  return typeOf(object) === REACT_CONTEXT_TYPE;
@@ -4032,47 +363,45 @@ function requireReactIs_development () {
 	  return typeOf(object) === REACT_SUSPENSE_TYPE;
 	}
 
-	reactIs_development.AsyncMode = AsyncMode;
-	reactIs_development.ConcurrentMode = ConcurrentMode;
-	reactIs_development.ContextConsumer = ContextConsumer;
-	reactIs_development.ContextProvider = ContextProvider;
-	reactIs_development.Element = Element;
-	reactIs_development.ForwardRef = ForwardRef;
-	reactIs_development.Fragment = Fragment;
-	reactIs_development.Lazy = Lazy;
-	reactIs_development.Memo = Memo;
-	reactIs_development.Portal = Portal;
-	reactIs_development.Profiler = Profiler;
-	reactIs_development.StrictMode = StrictMode;
-	reactIs_development.Suspense = Suspense;
-	reactIs_development.isAsyncMode = isAsyncMode;
-	reactIs_development.isConcurrentMode = isConcurrentMode;
-	reactIs_development.isContextConsumer = isContextConsumer;
-	reactIs_development.isContextProvider = isContextProvider;
-	reactIs_development.isElement = isElement;
-	reactIs_development.isForwardRef = isForwardRef;
-	reactIs_development.isFragment = isFragment;
-	reactIs_development.isLazy = isLazy;
-	reactIs_development.isMemo = isMemo;
-	reactIs_development.isPortal = isPortal;
-	reactIs_development.isProfiler = isProfiler;
-	reactIs_development.isStrictMode = isStrictMode;
-	reactIs_development.isSuspense = isSuspense;
-	reactIs_development.isValidElementType = isValidElementType;
-	reactIs_development.typeOf = typeOf;
+	reactIs_development$1.ContextConsumer = ContextConsumer;
+	reactIs_development$1.ContextProvider = ContextProvider;
+	reactIs_development$1.Element = Element;
+	reactIs_development$1.ForwardRef = ForwardRef;
+	reactIs_development$1.Fragment = Fragment;
+	reactIs_development$1.Lazy = Lazy;
+	reactIs_development$1.Memo = Memo;
+	reactIs_development$1.Portal = Portal;
+	reactIs_development$1.Profiler = Profiler;
+	reactIs_development$1.StrictMode = StrictMode;
+	reactIs_development$1.Suspense = Suspense;
+	reactIs_development$1.isAsyncMode = isAsyncMode;
+	reactIs_development$1.isConcurrentMode = isConcurrentMode;
+	reactIs_development$1.isContextConsumer = isContextConsumer;
+	reactIs_development$1.isContextProvider = isContextProvider;
+	reactIs_development$1.isElement = isElement;
+	reactIs_development$1.isForwardRef = isForwardRef;
+	reactIs_development$1.isFragment = isFragment;
+	reactIs_development$1.isLazy = isLazy;
+	reactIs_development$1.isMemo = isMemo;
+	reactIs_development$1.isPortal = isPortal;
+	reactIs_development$1.isProfiler = isProfiler;
+	reactIs_development$1.isStrictMode = isStrictMode;
+	reactIs_development$1.isSuspense = isSuspense;
+	reactIs_development$1.isValidElementType = isValidElementType;
+	reactIs_development$1.typeOf = typeOf;
 	  })();
 	}
-	return reactIs_development;
+	return reactIs_development$1;
 }
 
 (function (module) {
 
 	if (process.env.NODE_ENV === 'production') {
-	  module.exports = requireReactIs_production_min();
+	  module.exports = requireReactIs_production_min$1();
 	} else {
-	  module.exports = requireReactIs_development();
+	  module.exports = requireReactIs_development$1();
 	}
-} (reactIs$1));
+} (reactIs$2));
 
 function stylis_min (W) {
   function M(d, c, e, h, a) {
@@ -4757,6 +1086,231 @@ var isPropValid = /* #__PURE__ */memoize(function (prop) {
 /* Z+1 */
 );
 
+var reactIs$1 = {exports: {}};
+
+var reactIs_production_min = {};
+
+/** @license React v16.13.1
+ * react-is.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredReactIs_production_min;
+
+function requireReactIs_production_min () {
+	if (hasRequiredReactIs_production_min) return reactIs_production_min;
+	hasRequiredReactIs_production_min = 1;
+var b="function"===typeof Symbol&&Symbol.for,c=b?Symbol.for("react.element"):60103,d=b?Symbol.for("react.portal"):60106,e=b?Symbol.for("react.fragment"):60107,f=b?Symbol.for("react.strict_mode"):60108,g=b?Symbol.for("react.profiler"):60114,h=b?Symbol.for("react.provider"):60109,k=b?Symbol.for("react.context"):60110,l=b?Symbol.for("react.async_mode"):60111,m=b?Symbol.for("react.concurrent_mode"):60111,n=b?Symbol.for("react.forward_ref"):60112,p=b?Symbol.for("react.suspense"):60113,q=b?
+	Symbol.for("react.suspense_list"):60120,r=b?Symbol.for("react.memo"):60115,t=b?Symbol.for("react.lazy"):60116,v=b?Symbol.for("react.block"):60121,w=b?Symbol.for("react.fundamental"):60117,x=b?Symbol.for("react.responder"):60118,y=b?Symbol.for("react.scope"):60119;
+	function z(a){if("object"===typeof a&&null!==a){var u=a.$$typeof;switch(u){case c:switch(a=a.type,a){case l:case m:case e:case g:case f:case p:return a;default:switch(a=a&&a.$$typeof,a){case k:case n:case t:case r:case h:return a;default:return u}}case d:return u}}}function A(a){return z(a)===m}reactIs_production_min.AsyncMode=l;reactIs_production_min.ConcurrentMode=m;reactIs_production_min.ContextConsumer=k;reactIs_production_min.ContextProvider=h;reactIs_production_min.Element=c;reactIs_production_min.ForwardRef=n;reactIs_production_min.Fragment=e;reactIs_production_min.Lazy=t;reactIs_production_min.Memo=r;reactIs_production_min.Portal=d;
+	reactIs_production_min.Profiler=g;reactIs_production_min.StrictMode=f;reactIs_production_min.Suspense=p;reactIs_production_min.isAsyncMode=function(a){return A(a)||z(a)===l};reactIs_production_min.isConcurrentMode=A;reactIs_production_min.isContextConsumer=function(a){return z(a)===k};reactIs_production_min.isContextProvider=function(a){return z(a)===h};reactIs_production_min.isElement=function(a){return "object"===typeof a&&null!==a&&a.$$typeof===c};reactIs_production_min.isForwardRef=function(a){return z(a)===n};reactIs_production_min.isFragment=function(a){return z(a)===e};reactIs_production_min.isLazy=function(a){return z(a)===t};
+	reactIs_production_min.isMemo=function(a){return z(a)===r};reactIs_production_min.isPortal=function(a){return z(a)===d};reactIs_production_min.isProfiler=function(a){return z(a)===g};reactIs_production_min.isStrictMode=function(a){return z(a)===f};reactIs_production_min.isSuspense=function(a){return z(a)===p};
+	reactIs_production_min.isValidElementType=function(a){return "string"===typeof a||"function"===typeof a||a===e||a===m||a===g||a===f||a===p||a===q||"object"===typeof a&&null!==a&&(a.$$typeof===t||a.$$typeof===r||a.$$typeof===h||a.$$typeof===k||a.$$typeof===n||a.$$typeof===w||a.$$typeof===x||a.$$typeof===y||a.$$typeof===v)};reactIs_production_min.typeOf=z;
+	return reactIs_production_min;
+}
+
+var reactIs_development = {};
+
+/** @license React v16.13.1
+ * react-is.development.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredReactIs_development;
+
+function requireReactIs_development () {
+	if (hasRequiredReactIs_development) return reactIs_development;
+	hasRequiredReactIs_development = 1;
+
+
+
+	if (process.env.NODE_ENV !== "production") {
+	  (function() {
+
+	// The Symbol used to tag the ReactElement-like types. If there is no native Symbol
+	// nor polyfill, then a plain number is used for performance.
+	var hasSymbol = typeof Symbol === 'function' && Symbol.for;
+	var REACT_ELEMENT_TYPE = hasSymbol ? Symbol.for('react.element') : 0xeac7;
+	var REACT_PORTAL_TYPE = hasSymbol ? Symbol.for('react.portal') : 0xeaca;
+	var REACT_FRAGMENT_TYPE = hasSymbol ? Symbol.for('react.fragment') : 0xeacb;
+	var REACT_STRICT_MODE_TYPE = hasSymbol ? Symbol.for('react.strict_mode') : 0xeacc;
+	var REACT_PROFILER_TYPE = hasSymbol ? Symbol.for('react.profiler') : 0xead2;
+	var REACT_PROVIDER_TYPE = hasSymbol ? Symbol.for('react.provider') : 0xeacd;
+	var REACT_CONTEXT_TYPE = hasSymbol ? Symbol.for('react.context') : 0xeace; // TODO: We don't use AsyncMode or ConcurrentMode anymore. They were temporary
+	// (unstable) APIs that have been removed. Can we remove the symbols?
+
+	var REACT_ASYNC_MODE_TYPE = hasSymbol ? Symbol.for('react.async_mode') : 0xeacf;
+	var REACT_CONCURRENT_MODE_TYPE = hasSymbol ? Symbol.for('react.concurrent_mode') : 0xeacf;
+	var REACT_FORWARD_REF_TYPE = hasSymbol ? Symbol.for('react.forward_ref') : 0xead0;
+	var REACT_SUSPENSE_TYPE = hasSymbol ? Symbol.for('react.suspense') : 0xead1;
+	var REACT_SUSPENSE_LIST_TYPE = hasSymbol ? Symbol.for('react.suspense_list') : 0xead8;
+	var REACT_MEMO_TYPE = hasSymbol ? Symbol.for('react.memo') : 0xead3;
+	var REACT_LAZY_TYPE = hasSymbol ? Symbol.for('react.lazy') : 0xead4;
+	var REACT_BLOCK_TYPE = hasSymbol ? Symbol.for('react.block') : 0xead9;
+	var REACT_FUNDAMENTAL_TYPE = hasSymbol ? Symbol.for('react.fundamental') : 0xead5;
+	var REACT_RESPONDER_TYPE = hasSymbol ? Symbol.for('react.responder') : 0xead6;
+	var REACT_SCOPE_TYPE = hasSymbol ? Symbol.for('react.scope') : 0xead7;
+
+	function isValidElementType(type) {
+	  return typeof type === 'string' || typeof type === 'function' || // Note: its typeof might be other than 'symbol' or 'number' if it's a polyfill.
+	  type === REACT_FRAGMENT_TYPE || type === REACT_CONCURRENT_MODE_TYPE || type === REACT_PROFILER_TYPE || type === REACT_STRICT_MODE_TYPE || type === REACT_SUSPENSE_TYPE || type === REACT_SUSPENSE_LIST_TYPE || typeof type === 'object' && type !== null && (type.$$typeof === REACT_LAZY_TYPE || type.$$typeof === REACT_MEMO_TYPE || type.$$typeof === REACT_PROVIDER_TYPE || type.$$typeof === REACT_CONTEXT_TYPE || type.$$typeof === REACT_FORWARD_REF_TYPE || type.$$typeof === REACT_FUNDAMENTAL_TYPE || type.$$typeof === REACT_RESPONDER_TYPE || type.$$typeof === REACT_SCOPE_TYPE || type.$$typeof === REACT_BLOCK_TYPE);
+	}
+
+	function typeOf(object) {
+	  if (typeof object === 'object' && object !== null) {
+	    var $$typeof = object.$$typeof;
+
+	    switch ($$typeof) {
+	      case REACT_ELEMENT_TYPE:
+	        var type = object.type;
+
+	        switch (type) {
+	          case REACT_ASYNC_MODE_TYPE:
+	          case REACT_CONCURRENT_MODE_TYPE:
+	          case REACT_FRAGMENT_TYPE:
+	          case REACT_PROFILER_TYPE:
+	          case REACT_STRICT_MODE_TYPE:
+	          case REACT_SUSPENSE_TYPE:
+	            return type;
+
+	          default:
+	            var $$typeofType = type && type.$$typeof;
+
+	            switch ($$typeofType) {
+	              case REACT_CONTEXT_TYPE:
+	              case REACT_FORWARD_REF_TYPE:
+	              case REACT_LAZY_TYPE:
+	              case REACT_MEMO_TYPE:
+	              case REACT_PROVIDER_TYPE:
+	                return $$typeofType;
+
+	              default:
+	                return $$typeof;
+	            }
+
+	        }
+
+	      case REACT_PORTAL_TYPE:
+	        return $$typeof;
+	    }
+	  }
+
+	  return undefined;
+	} // AsyncMode is deprecated along with isAsyncMode
+
+	var AsyncMode = REACT_ASYNC_MODE_TYPE;
+	var ConcurrentMode = REACT_CONCURRENT_MODE_TYPE;
+	var ContextConsumer = REACT_CONTEXT_TYPE;
+	var ContextProvider = REACT_PROVIDER_TYPE;
+	var Element = REACT_ELEMENT_TYPE;
+	var ForwardRef = REACT_FORWARD_REF_TYPE;
+	var Fragment = REACT_FRAGMENT_TYPE;
+	var Lazy = REACT_LAZY_TYPE;
+	var Memo = REACT_MEMO_TYPE;
+	var Portal = REACT_PORTAL_TYPE;
+	var Profiler = REACT_PROFILER_TYPE;
+	var StrictMode = REACT_STRICT_MODE_TYPE;
+	var Suspense = REACT_SUSPENSE_TYPE;
+	var hasWarnedAboutDeprecatedIsAsyncMode = false; // AsyncMode should be deprecated
+
+	function isAsyncMode(object) {
+	  {
+	    if (!hasWarnedAboutDeprecatedIsAsyncMode) {
+	      hasWarnedAboutDeprecatedIsAsyncMode = true; // Using console['warn'] to evade Babel and ESLint
+
+	      console['warn']('The ReactIs.isAsyncMode() alias has been deprecated, ' + 'and will be removed in React 17+. Update your code to use ' + 'ReactIs.isConcurrentMode() instead. It has the exact same API.');
+	    }
+	  }
+
+	  return isConcurrentMode(object) || typeOf(object) === REACT_ASYNC_MODE_TYPE;
+	}
+	function isConcurrentMode(object) {
+	  return typeOf(object) === REACT_CONCURRENT_MODE_TYPE;
+	}
+	function isContextConsumer(object) {
+	  return typeOf(object) === REACT_CONTEXT_TYPE;
+	}
+	function isContextProvider(object) {
+	  return typeOf(object) === REACT_PROVIDER_TYPE;
+	}
+	function isElement(object) {
+	  return typeof object === 'object' && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
+	}
+	function isForwardRef(object) {
+	  return typeOf(object) === REACT_FORWARD_REF_TYPE;
+	}
+	function isFragment(object) {
+	  return typeOf(object) === REACT_FRAGMENT_TYPE;
+	}
+	function isLazy(object) {
+	  return typeOf(object) === REACT_LAZY_TYPE;
+	}
+	function isMemo(object) {
+	  return typeOf(object) === REACT_MEMO_TYPE;
+	}
+	function isPortal(object) {
+	  return typeOf(object) === REACT_PORTAL_TYPE;
+	}
+	function isProfiler(object) {
+	  return typeOf(object) === REACT_PROFILER_TYPE;
+	}
+	function isStrictMode(object) {
+	  return typeOf(object) === REACT_STRICT_MODE_TYPE;
+	}
+	function isSuspense(object) {
+	  return typeOf(object) === REACT_SUSPENSE_TYPE;
+	}
+
+	reactIs_development.AsyncMode = AsyncMode;
+	reactIs_development.ConcurrentMode = ConcurrentMode;
+	reactIs_development.ContextConsumer = ContextConsumer;
+	reactIs_development.ContextProvider = ContextProvider;
+	reactIs_development.Element = Element;
+	reactIs_development.ForwardRef = ForwardRef;
+	reactIs_development.Fragment = Fragment;
+	reactIs_development.Lazy = Lazy;
+	reactIs_development.Memo = Memo;
+	reactIs_development.Portal = Portal;
+	reactIs_development.Profiler = Profiler;
+	reactIs_development.StrictMode = StrictMode;
+	reactIs_development.Suspense = Suspense;
+	reactIs_development.isAsyncMode = isAsyncMode;
+	reactIs_development.isConcurrentMode = isConcurrentMode;
+	reactIs_development.isContextConsumer = isContextConsumer;
+	reactIs_development.isContextProvider = isContextProvider;
+	reactIs_development.isElement = isElement;
+	reactIs_development.isForwardRef = isForwardRef;
+	reactIs_development.isFragment = isFragment;
+	reactIs_development.isLazy = isLazy;
+	reactIs_development.isMemo = isMemo;
+	reactIs_development.isPortal = isPortal;
+	reactIs_development.isProfiler = isProfiler;
+	reactIs_development.isStrictMode = isStrictMode;
+	reactIs_development.isSuspense = isSuspense;
+	reactIs_development.isValidElementType = isValidElementType;
+	reactIs_development.typeOf = typeOf;
+	  })();
+	}
+	return reactIs_development;
+}
+
+(function (module) {
+
+	if (process.env.NODE_ENV === 'production') {
+	  module.exports = requireReactIs_production_min();
+	} else {
+	  module.exports = requireReactIs_development();
+	}
+} (reactIs$1));
+
 var reactIs = reactIs$1.exports;
 
 /**
@@ -4859,7 +1413,7 @@ function hoistNonReactStatics(targetComponent, sourceComponent, blacklist) {
 
 var hoistNonReactStatics_cjs = hoistNonReactStatics;
 
-function y(){return (y=Object.assign||function(e){for(var t=1;t<arguments.length;t++){var n=arguments[t];for(var r in n)Object.prototype.hasOwnProperty.call(n,r)&&(e[r]=n[r]);}return e}).apply(this,arguments)}var v=function(e,t){for(var n=[e[0]],r=0,o=t.length;r<o;r+=1)n.push(t[r],e[r+1]);return n},g=function(t){return null!==t&&"object"==typeof t&&"[object Object]"===(t.toString?t.toString():Object.prototype.toString.call(t))&&!reactIs$1.exports.typeOf(t)},S=Object.freeze([]),w=Object.freeze({});function E(e){return "function"==typeof e}function b(e){return "production"!==process.env.NODE_ENV&&"string"==typeof e&&e||e.displayName||e.name||"Component"}function _(e){return e&&"string"==typeof e.styledComponentId}var N="undefined"!=typeof process&&(process.env.REACT_APP_SC_ATTR||process.env.SC_ATTR)||"data-styled",C="undefined"!=typeof window&&"HTMLElement"in window,I=Boolean("boolean"==typeof SC_DISABLE_SPEEDY?SC_DISABLE_SPEEDY:"undefined"!=typeof process&&void 0!==process.env.REACT_APP_SC_DISABLE_SPEEDY&&""!==process.env.REACT_APP_SC_DISABLE_SPEEDY?"false"!==process.env.REACT_APP_SC_DISABLE_SPEEDY&&process.env.REACT_APP_SC_DISABLE_SPEEDY:"undefined"!=typeof process&&void 0!==process.env.SC_DISABLE_SPEEDY&&""!==process.env.SC_DISABLE_SPEEDY?"false"!==process.env.SC_DISABLE_SPEEDY&&process.env.SC_DISABLE_SPEEDY:"production"!==process.env.NODE_ENV),O="production"!==process.env.NODE_ENV?{1:"Cannot create styled-component for component: %s.\n\n",2:"Can't collect styles once you've consumed a `ServerStyleSheet`'s styles! `ServerStyleSheet` is a one off instance for each server-side render cycle.\n\n- Are you trying to reuse it across renders?\n- Are you accidentally calling collectStyles twice?\n\n",3:"Streaming SSR is only supported in a Node.js environment; Please do not try to call this method in the browser.\n\n",4:"The `StyleSheetManager` expects a valid target or sheet prop!\n\n- Does this error occur on the client and is your target falsy?\n- Does this error occur on the server and is the sheet falsy?\n\n",5:"The clone method cannot be used on the client!\n\n- Are you running in a client-like environment on the server?\n- Are you trying to run SSR on the client?\n\n",6:"Trying to insert a new style tag, but the given Node is unmounted!\n\n- Are you using a custom target that isn't mounted?\n- Does your document not have a valid head element?\n- Have you accidentally removed a style tag manually?\n\n",7:'ThemeProvider: Please return an object from your "theme" prop function, e.g.\n\n```js\ntheme={() => ({})}\n```\n\n',8:'ThemeProvider: Please make your "theme" prop an object.\n\n',9:"Missing document `<head>`\n\n",10:"Cannot find a StyleSheet instance. Usually this happens if there are multiple copies of styled-components loaded at once. Check out this issue for how to troubleshoot and fix the common cases where this situation can happen: https://github.com/styled-components/styled-components/issues/1941#issuecomment-417862021\n\n",11:"_This error was replaced with a dev-time warning, it will be deleted for v4 final._ [createGlobalStyle] received children which will not be rendered. Please use the component without passing children elements.\n\n",12:"It seems you are interpolating a keyframe declaration (%s) into an untagged string. This was supported in styled-components v3, but is not longer supported in v4 as keyframes are now injected on-demand. Please wrap your string in the css\\`\\` helper which ensures the styles are injected correctly. See https://www.styled-components.com/docs/api#css\n\n",13:"%s is not a styled component and cannot be referred to via component selector. See https://www.styled-components.com/docs/advanced#referring-to-other-components for more details.\n\n",14:'ThemeProvider: "theme" prop is required.\n\n',15:"A stylis plugin has been supplied that is not named. We need a name for each plugin to be able to prevent styling collisions between different stylis configurations within the same app. Before you pass your plugin to `<StyleSheetManager stylisPlugins={[]}>`, please make sure each plugin is uniquely-named, e.g.\n\n```js\nObject.defineProperty(importedPlugin, 'name', { value: 'some-unique-name' });\n```\n\n",16:"Reached the limit of how many styled components may be created at group %s.\nYou may only create up to 1,073,741,824 components. If you're creating components dynamically,\nas for instance in your render method then you may be running into this limitation.\n\n",17:"CSSStyleSheet could not be found on HTMLStyleElement.\nHas styled-components' style tag been unmounted or altered by another script?\n"}:{};function R(){for(var e=arguments.length<=0?void 0:arguments[0],t=[],n=1,r=arguments.length;n<r;n+=1)t.push(n<0||arguments.length<=n?void 0:arguments[n]);return t.forEach((function(t){e=e.replace(/%[a-z]/,t);})),e}function D(e){for(var t=arguments.length,n=new Array(t>1?t-1:0),r=1;r<t;r++)n[r-1]=arguments[r];throw "production"===process.env.NODE_ENV?new Error("An error occurred. See https://git.io/JUIaE#"+e+" for more information."+(n.length>0?" Args: "+n.join(", "):"")):new Error(R.apply(void 0,[O[e]].concat(n)).trim())}var j=function(){function e(e){this.groupSizes=new Uint32Array(512),this.length=512,this.tag=e;}var t=e.prototype;return t.indexOfGroup=function(e){for(var t=0,n=0;n<e;n++)t+=this.groupSizes[n];return t},t.insertRules=function(e,t){if(e>=this.groupSizes.length){for(var n=this.groupSizes,r=n.length,o=r;e>=o;)(o<<=1)<0&&D(16,""+e);this.groupSizes=new Uint32Array(o),this.groupSizes.set(n),this.length=o;for(var s=r;s<o;s++)this.groupSizes[s]=0;}for(var i=this.indexOfGroup(e+1),a=0,c=t.length;a<c;a++)this.tag.insertRule(i,t[a])&&(this.groupSizes[e]++,i++);},t.clearGroup=function(e){if(e<this.length){var t=this.groupSizes[e],n=this.indexOfGroup(e),r=n+t;this.groupSizes[e]=0;for(var o=n;o<r;o++)this.tag.deleteRule(n);}},t.getGroup=function(e){var t="";if(e>=this.length||0===this.groupSizes[e])return t;for(var n=this.groupSizes[e],r=this.indexOfGroup(e),o=r+n,s=r;s<o;s++)t+=this.tag.getRule(s)+"/*!sc*/\n";return t},e}(),T=new Map,x=new Map,k=1,V=function(e){if(T.has(e))return T.get(e);for(;x.has(k);)k++;var t=k++;return "production"!==process.env.NODE_ENV&&((0|t)<0||t>1<<30)&&D(16,""+t),T.set(e,t),x.set(t,e),t},z=function(e){return x.get(e)},B=function(e,t){t>=k&&(k=t+1),T.set(e,t),x.set(t,e);},M="style["+N+'][data-styled-version="5.3.6"]',G=new RegExp("^"+N+'\\.g(\\d+)\\[id="([\\w\\d-]+)"\\].*?"([^"]*)'),L=function(e,t,n){for(var r,o=n.split(","),s=0,i=o.length;s<i;s++)(r=o[s])&&e.registerName(t,r);},F=function(e,t){for(var n=(t.textContent||"").split("/*!sc*/\n"),r=[],o=0,s=n.length;o<s;o++){var i=n[o].trim();if(i){var a=i.match(G);if(a){var c=0|parseInt(a[1],10),u=a[2];0!==c&&(B(u,c),L(e,u,a[3]),e.getTag().insertRules(c,r)),r.length=0;}else r.push(i);}}},Y=function(){return "undefined"!=typeof __webpack_nonce__?__webpack_nonce__:null},q=function(e){var t=document.head,n=e||t,r=document.createElement("style"),o=function(e){for(var t=e.childNodes,n=t.length;n>=0;n--){var r=t[n];if(r&&1===r.nodeType&&r.hasAttribute(N))return r}}(n),s=void 0!==o?o.nextSibling:null;r.setAttribute(N,"active"),r.setAttribute("data-styled-version","5.3.6");var i=Y();return i&&r.setAttribute("nonce",i),n.insertBefore(r,s),r},H=function(){function e(e){var t=this.element=q(e);t.appendChild(document.createTextNode("")),this.sheet=function(e){if(e.sheet)return e.sheet;for(var t=document.styleSheets,n=0,r=t.length;n<r;n++){var o=t[n];if(o.ownerNode===e)return o}D(17);}(t),this.length=0;}var t=e.prototype;return t.insertRule=function(e,t){try{return this.sheet.insertRule(t,e),this.length++,!0}catch(e){return !1}},t.deleteRule=function(e){this.sheet.deleteRule(e),this.length--;},t.getRule=function(e){var t=this.sheet.cssRules[e];return void 0!==t&&"string"==typeof t.cssText?t.cssText:""},e}(),$=function(){function e(e){var t=this.element=q(e);this.nodes=t.childNodes,this.length=0;}var t=e.prototype;return t.insertRule=function(e,t){if(e<=this.length&&e>=0){var n=document.createTextNode(t),r=this.nodes[e];return this.element.insertBefore(n,r||null),this.length++,!0}return !1},t.deleteRule=function(e){this.element.removeChild(this.nodes[e]),this.length--;},t.getRule=function(e){return e<this.length?this.nodes[e].textContent:""},e}(),W=function(){function e(e){this.rules=[],this.length=0;}var t=e.prototype;return t.insertRule=function(e,t){return e<=this.length&&(this.rules.splice(e,0,t),this.length++,!0)},t.deleteRule=function(e){this.rules.splice(e,1),this.length--;},t.getRule=function(e){return e<this.length?this.rules[e]:""},e}(),U=C,J={isServer:!C,useCSSOMInjection:!I},X=function(){function e(e,t,n){void 0===e&&(e=w),void 0===t&&(t={}),this.options=y({},J,{},e),this.gs=t,this.names=new Map(n),this.server=!!e.isServer,!this.server&&C&&U&&(U=!1,function(e){for(var t=document.querySelectorAll(M),n=0,r=t.length;n<r;n++){var o=t[n];o&&"active"!==o.getAttribute(N)&&(F(e,o),o.parentNode&&o.parentNode.removeChild(o));}}(this));}e.registerId=function(e){return V(e)};var t=e.prototype;return t.reconstructWithOptions=function(t,n){return void 0===n&&(n=!0),new e(y({},this.options,{},t),this.gs,n&&this.names||void 0)},t.allocateGSInstance=function(e){return this.gs[e]=(this.gs[e]||0)+1},t.getTag=function(){return this.tag||(this.tag=(n=(t=this.options).isServer,r=t.useCSSOMInjection,o=t.target,e=n?new W(o):r?new H(o):new $(o),new j(e)));var e,t,n,r,o;},t.hasNameForId=function(e,t){return this.names.has(e)&&this.names.get(e).has(t)},t.registerName=function(e,t){if(V(e),this.names.has(e))this.names.get(e).add(t);else {var n=new Set;n.add(t),this.names.set(e,n);}},t.insertRules=function(e,t,n){this.registerName(e,t),this.getTag().insertRules(V(e),n);},t.clearNames=function(e){this.names.has(e)&&this.names.get(e).clear();},t.clearRules=function(e){this.getTag().clearGroup(V(e)),this.clearNames(e);},t.clearTag=function(){this.tag=void 0;},t.toString=function(){return function(e){for(var t=e.getTag(),n=t.length,r="",o=0;o<n;o++){var s=z(o);if(void 0!==s){var i=e.names.get(s),a=t.getGroup(o);if(i&&a&&i.size){var c=N+".g"+o+'[id="'+s+'"]',u="";void 0!==i&&i.forEach((function(e){e.length>0&&(u+=e+",");})),r+=""+a+c+'{content:"'+u+'"}/*!sc*/\n';}}}return r}(this)},e}(),Z=/(a)(d)/gi,K=function(e){return String.fromCharCode(e+(e>25?39:97))};function Q(e){var t,n="";for(t=Math.abs(e);t>52;t=t/52|0)n=K(t%52)+n;return (K(t%52)+n).replace(Z,"$1-$2")}var ee=function(e,t){for(var n=t.length;n;)e=33*e^t.charCodeAt(--n);return e},te=function(e){return ee(5381,e)};function ne(e){for(var t=0;t<e.length;t+=1){var n=e[t];if(E(n)&&!_(n))return !1}return !0}var re=te("5.3.6"),oe=function(){function e(e,t,n){this.rules=e,this.staticRulesId="",this.isStatic="production"===process.env.NODE_ENV&&(void 0===n||n.isStatic)&&ne(e),this.componentId=t,this.baseHash=ee(re,t),this.baseStyle=n,X.registerId(t);}return e.prototype.generateAndInjectStyles=function(e,t,n){var r=this.componentId,o=[];if(this.baseStyle&&o.push(this.baseStyle.generateAndInjectStyles(e,t,n)),this.isStatic&&!n.hash)if(this.staticRulesId&&t.hasNameForId(r,this.staticRulesId))o.push(this.staticRulesId);else {var s=_e(this.rules,e,t,n).join(""),i=Q(ee(this.baseHash,s)>>>0);if(!t.hasNameForId(r,i)){var a=n(s,"."+i,void 0,r);t.insertRules(r,i,a);}o.push(i),this.staticRulesId=i;}else {for(var c=this.rules.length,u=ee(this.baseHash,n.hash),l="",d=0;d<c;d++){var h=this.rules[d];if("string"==typeof h)l+=h,"production"!==process.env.NODE_ENV&&(u=ee(u,h+d));else if(h){var p=_e(h,e,t,n),f=Array.isArray(p)?p.join(""):p;u=ee(u,f+d),l+=f;}}if(l){var m=Q(u>>>0);if(!t.hasNameForId(r,m)){var y=n(l,"."+m,void 0,r);t.insertRules(r,m,y);}o.push(m);}}return o.join(" ")},e}(),se=/^\s*\/\/.*$/gm,ie=[":","[",".","#"];function ae(e){var t,n,r,o,s=void 0===e?w:e,i=s.options,a=void 0===i?w:i,c=s.plugins,u=void 0===c?S:c,l=new stylis_min(a),d=[],p=function(e){function t(t){if(t)try{e(t+"}");}catch(e){}}return function(n,r,o,s,i,a,c,u,l,d){switch(n){case 1:if(0===l&&64===r.charCodeAt(0))return e(r+";"),"";break;case 2:if(0===u)return r+"/*|*/";break;case 3:switch(u){case 102:case 112:return e(o[0]+r),"";default:return r+(0===d?"/*|*/":"")}case-2:r.split("/*|*/}").forEach(t);}}}((function(e){d.push(e);})),f=function(e,r,s){return 0===r&&-1!==ie.indexOf(s[n.length])||s.match(o)?e:"."+t};function m(e,s,i,a){void 0===a&&(a="&");var c=e.replace(se,""),u=s&&i?i+" "+s+" { "+c+" }":c;return t=a,n=s,r=new RegExp("\\"+n+"\\b","g"),o=new RegExp("(\\"+n+"\\b){2,}"),l(i||!s?"":s,u)}return l.use([].concat(u,[function(e,t,o){2===e&&o.length&&o[0].lastIndexOf(n)>0&&(o[0]=o[0].replace(r,f));},p,function(e){if(-2===e){var t=d;return d=[],t}}])),m.hash=u.length?u.reduce((function(e,t){return t.name||D(15),ee(e,t.name)}),5381).toString():"",m}var ce=React.createContext();ce.Consumer;var le=React.createContext(),de=(le.Consumer,new X),he=ae();function pe(){return React.useContext(ce)||de}function fe(){return React.useContext(le)||he}var ye=function(){function e(e,t){var n=this;this.inject=function(e,t){void 0===t&&(t=he);var r=n.name+t.hash;e.hasNameForId(n.id,r)||e.insertRules(n.id,r,t(n.rules,r,"@keyframes"));},this.toString=function(){return D(12,String(n.name))},this.name=e,this.id="sc-keyframes-"+e,this.rules=t;}return e.prototype.getName=function(e){return void 0===e&&(e=he),this.name+e.hash},e}(),ve=/([A-Z])/,ge=/([A-Z])/g,Se=/^ms-/,we=function(e){return "-"+e.toLowerCase()};function Ee(e){return ve.test(e)?e.replace(ge,we).replace(Se,"-ms-"):e}var be=function(e){return null==e||!1===e||""===e};function _e(e,n,r,o){if(Array.isArray(e)){for(var s,i=[],a=0,c=e.length;a<c;a+=1)""!==(s=_e(e[a],n,r,o))&&(Array.isArray(s)?i.push.apply(i,s):i.push(s));return i}if(be(e))return "";if(_(e))return "."+e.styledComponentId;if(E(e)){if("function"!=typeof(l=e)||l.prototype&&l.prototype.isReactComponent||!n)return e;var u=e(n);return "production"!==process.env.NODE_ENV&&reactIs$1.exports.isElement(u)&&console.warn(b(e)+" is not a styled component and cannot be referred to via component selector. See https://www.styled-components.com/docs/advanced#referring-to-other-components for more details."),_e(u,n,r,o)}var l;return e instanceof ye?r?(e.inject(r,o),e.getName(o)):e:g(e)?function e(t,n){var r,o,s=[];for(var i in t)t.hasOwnProperty(i)&&!be(t[i])&&(Array.isArray(t[i])&&t[i].isCss||E(t[i])?s.push(Ee(i)+":",t[i],";"):g(t[i])?s.push.apply(s,e(t[i],i)):s.push(Ee(i)+": "+(r=i,null==(o=t[i])||"boolean"==typeof o||""===o?"":"number"!=typeof o||0===o||r in unitlessKeys?String(o).trim():o+"px")+";"));return n?[n+" {"].concat(s,["}"]):s}(e):e.toString()}var Ne=function(e){return Array.isArray(e)&&(e.isCss=!0),e};function Ae(e){for(var t=arguments.length,n=new Array(t>1?t-1:0),r=1;r<t;r++)n[r-1]=arguments[r];return E(e)||g(e)?Ne(_e(v(S,[e].concat(n)))):0===n.length&&1===e.length&&"string"==typeof e[0]?e:Ne(_e(v(e,n)))}var Ce=/invalid hook call/i,Ie=new Set,Pe=function(e,t){if("production"!==process.env.NODE_ENV){var n="The component "+e+(t?' with the id of "'+t+'"':"")+" has been created dynamically.\nYou may see this warning because you've called styled inside another component.\nTo resolve this only create new StyledComponents outside of any render method and function component.",r=console.error;try{var o=!0;console.error=function(e){if(Ce.test(e))o=!1,Ie.delete(n);else {for(var t=arguments.length,s=new Array(t>1?t-1:0),i=1;i<t;i++)s[i-1]=arguments[i];r.apply(void 0,[e].concat(s));}},React.useRef(),o&&!Ie.has(n)&&(console.warn(n),Ie.add(n));}catch(e){Ce.test(e.message)&&Ie.delete(n);}finally{console.error=r;}}},Oe=function(e,t,n){return void 0===n&&(n=w),e.theme!==n.theme&&e.theme||t||n.theme},Re=/[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~-]+/g,De=/(^-|-$)/g;function je(e){return e.replace(Re,"-").replace(De,"")}var Te=function(e){return Q(te(e)>>>0)};function xe(e){return "string"==typeof e&&("production"===process.env.NODE_ENV||e.charAt(0)===e.charAt(0).toLowerCase())}var ke=function(e){return "function"==typeof e||"object"==typeof e&&null!==e&&!Array.isArray(e)},Ve=function(e){return "__proto__"!==e&&"constructor"!==e&&"prototype"!==e};function ze(e,t,n){var r=e[n];ke(t)&&ke(r)?Be(r,t):e[n]=t;}function Be(e){for(var t=arguments.length,n=new Array(t>1?t-1:0),r=1;r<t;r++)n[r-1]=arguments[r];for(var o=0,s=n;o<s.length;o++){var i=s[o];if(ke(i))for(var a in i)Ve(a)&&ze(e,i[a],a);}return e}var Me=React.createContext();Me.Consumer;var Fe={};function Ye(e,t,n){var o=_(e),i=!xe(e),a=t.attrs,c=void 0===a?S:a,d=t.componentId,h=void 0===d?function(e,t){var n="string"!=typeof e?"sc":je(e);Fe[n]=(Fe[n]||0)+1;var r=n+"-"+Te("5.3.6"+n+Fe[n]);return t?t+"-"+r:r}(t.displayName,t.parentComponentId):d,p=t.displayName,v=void 0===p?function(e){return xe(e)?"styled."+e:"Styled("+b(e)+")"}(e):p,g=t.displayName&&t.componentId?je(t.displayName)+"-"+t.componentId:t.componentId||h,N=o&&e.attrs?Array.prototype.concat(e.attrs,c).filter(Boolean):c,A=t.shouldForwardProp;o&&e.shouldForwardProp&&(A=t.shouldForwardProp?function(n,r,o){return e.shouldForwardProp(n,r,o)&&t.shouldForwardProp(n,r,o)}:e.shouldForwardProp);var C,I=new oe(n,g,o?e.componentStyle:void 0),P=I.isStatic&&0===c.length,O=function(e,t){return function(e,t,n,r){var o=e.attrs,i=e.componentStyle,a=e.defaultProps,c=e.foldedComponentIds,d=e.shouldForwardProp,h=e.styledComponentId,p=e.target;"production"!==process.env.NODE_ENV&&React.useDebugValue(h);var m=function(e,t,n){void 0===e&&(e=w);var r=y({},t,{theme:e}),o={};return n.forEach((function(e){var t,n,s,i=e;for(t in E(i)&&(i=i(r)),i)r[t]=o[t]="className"===t?(n=o[t],s=i[t],n&&s?n+" "+s:n||s):i[t];})),[r,o]}(Oe(t,React.useContext(Me),a)||w,t,o),v=m[0],g=m[1],S=function(e,t,n,r){var o=pe(),s=fe(),i=t?e.generateAndInjectStyles(w,o,s):e.generateAndInjectStyles(n,o,s);return "production"!==process.env.NODE_ENV&&React.useDebugValue(i),"production"!==process.env.NODE_ENV&&!t&&r&&r(i),i}(i,r,v,"production"!==process.env.NODE_ENV?e.warnTooManyClasses:void 0),b=n,_=g.$as||t.$as||g.as||t.as||p,N=xe(_),A=g!==t?y({},t,{},g):t,C={};for(var I in A)"$"!==I[0]&&"as"!==I&&("forwardedAs"===I?C.as=A[I]:(d?d(I,isPropValid,_):!N||isPropValid(I))&&(C[I]=A[I]));return t.style&&g.style!==t.style&&(C.style=y({},t.style,{},g.style)),C.className=Array.prototype.concat(c,h,S!==h?S:null,t.className,g.className).filter(Boolean).join(" "),C.ref=b,React.createElement(_,C)}(C,e,t,P)};return O.displayName=v,(C=React.forwardRef(O)).attrs=N,C.componentStyle=I,C.displayName=v,C.shouldForwardProp=A,C.foldedComponentIds=o?Array.prototype.concat(e.foldedComponentIds,e.styledComponentId):S,C.styledComponentId=g,C.target=o?e.target:e,C.withComponent=function(e){var r=t.componentId,o=function(e,t){if(null==e)return {};var n,r,o={},s=Object.keys(e);for(r=0;r<s.length;r++)n=s[r],t.indexOf(n)>=0||(o[n]=e[n]);return o}(t,["componentId"]),s=r&&r+"-"+(xe(e)?e:je(b(e)));return Ye(e,y({},o,{attrs:N,componentId:s}),n)},Object.defineProperty(C,"defaultProps",{get:function(){return this._foldedDefaultProps},set:function(t){this._foldedDefaultProps=o?Be({},e.defaultProps,t):t;}}),"production"!==process.env.NODE_ENV&&(Pe(v,g),C.warnTooManyClasses=function(e,t){var n={},r=!1;return function(o){if(!r&&(n[o]=!0,Object.keys(n).length>=200)){var s=t?' with the id of "'+t+'"':"";console.warn("Over 200 classes were generated for component "+e+s+".\nConsider using the attrs method, together with a style object for frequently changed styles.\nExample:\n  const Component = styled.div.attrs(props => ({\n    style: {\n      background: props.background,\n    },\n  }))`width: 100%;`\n\n  <Component />"),r=!0,n={};}}}(v,g)),C.toString=function(){return "."+C.styledComponentId},i&&hoistNonReactStatics_cjs(C,e,{attrs:!0,componentStyle:!0,displayName:!0,foldedComponentIds:!0,shouldForwardProp:!0,styledComponentId:!0,target:!0,withComponent:!0}),C}var qe=function(e){return function e(t,r,o){if(void 0===o&&(o=w),!reactIs$1.exports.isValidElementType(r))return D(1,String(r));var s=function(){return t(r,o,Ae.apply(void 0,arguments))};return s.withConfig=function(n){return e(t,r,y({},o,{},n))},s.attrs=function(n){return e(t,r,y({},o,{attrs:Array.prototype.concat(o.attrs,n).filter(Boolean)}))},s}(Ye,e)};["a","abbr","address","area","article","aside","audio","b","base","bdi","bdo","big","blockquote","body","br","button","canvas","caption","cite","code","col","colgroup","data","datalist","dd","del","details","dfn","dialog","div","dl","dt","em","embed","fieldset","figcaption","figure","footer","form","h1","h2","h3","h4","h5","h6","head","header","hgroup","hr","html","i","iframe","img","input","ins","kbd","keygen","label","legend","li","link","main","map","mark","marquee","menu","menuitem","meta","meter","nav","noscript","object","ol","optgroup","option","output","p","param","picture","pre","progress","q","rp","rt","ruby","s","samp","script","section","select","small","source","span","strong","style","sub","summary","sup","table","tbody","td","textarea","tfoot","th","thead","time","title","tr","track","u","ul","var","video","wbr","circle","clipPath","defs","ellipse","foreignObject","g","image","line","linearGradient","marker","mask","path","pattern","polygon","polyline","radialGradient","rect","stop","svg","text","textPath","tspan"].forEach((function(e){qe[e]=qe(e);}));"production"!==process.env.NODE_ENV&&"undefined"!=typeof navigator&&"ReactNative"===navigator.product&&console.warn("It looks like you've imported 'styled-components' on React Native.\nPerhaps you're looking to import 'styled-components/native'?\nRead more about this at https://www.styled-components.com/docs/basics#react-native"),"production"!==process.env.NODE_ENV&&"test"!==process.env.NODE_ENV&&"undefined"!=typeof window&&(window["__styled-components-init__"]=window["__styled-components-init__"]||0,1===window["__styled-components-init__"]&&console.warn("It looks like there are several instances of 'styled-components' initialized in this application. This may cause dynamic styles to not render properly, errors during the rehydration process, a missing theme prop, and makes your application bigger without good reason.\n\nSee https://s-c.sh/2BAXzed for more info."),window["__styled-components-init__"]+=1);var styled = qe;
+function y(){return (y=Object.assign||function(e){for(var t=1;t<arguments.length;t++){var n=arguments[t];for(var r in n)Object.prototype.hasOwnProperty.call(n,r)&&(e[r]=n[r]);}return e}).apply(this,arguments)}var v=function(e,t){for(var n=[e[0]],r=0,o=t.length;r<o;r+=1)n.push(t[r],e[r+1]);return n},g=function(t){return null!==t&&"object"==typeof t&&"[object Object]"===(t.toString?t.toString():Object.prototype.toString.call(t))&&!reactIs$2.exports.typeOf(t)},S=Object.freeze([]),w=Object.freeze({});function E(e){return "function"==typeof e}function b(e){return "production"!==process.env.NODE_ENV&&"string"==typeof e&&e||e.displayName||e.name||"Component"}function _(e){return e&&"string"==typeof e.styledComponentId}var N="undefined"!=typeof process&&(process.env.REACT_APP_SC_ATTR||process.env.SC_ATTR)||"data-styled",C="undefined"!=typeof window&&"HTMLElement"in window,I=Boolean("boolean"==typeof SC_DISABLE_SPEEDY?SC_DISABLE_SPEEDY:"undefined"!=typeof process&&void 0!==process.env.REACT_APP_SC_DISABLE_SPEEDY&&""!==process.env.REACT_APP_SC_DISABLE_SPEEDY?"false"!==process.env.REACT_APP_SC_DISABLE_SPEEDY&&process.env.REACT_APP_SC_DISABLE_SPEEDY:"undefined"!=typeof process&&void 0!==process.env.SC_DISABLE_SPEEDY&&""!==process.env.SC_DISABLE_SPEEDY?"false"!==process.env.SC_DISABLE_SPEEDY&&process.env.SC_DISABLE_SPEEDY:"production"!==process.env.NODE_ENV),O="production"!==process.env.NODE_ENV?{1:"Cannot create styled-component for component: %s.\n\n",2:"Can't collect styles once you've consumed a `ServerStyleSheet`'s styles! `ServerStyleSheet` is a one off instance for each server-side render cycle.\n\n- Are you trying to reuse it across renders?\n- Are you accidentally calling collectStyles twice?\n\n",3:"Streaming SSR is only supported in a Node.js environment; Please do not try to call this method in the browser.\n\n",4:"The `StyleSheetManager` expects a valid target or sheet prop!\n\n- Does this error occur on the client and is your target falsy?\n- Does this error occur on the server and is the sheet falsy?\n\n",5:"The clone method cannot be used on the client!\n\n- Are you running in a client-like environment on the server?\n- Are you trying to run SSR on the client?\n\n",6:"Trying to insert a new style tag, but the given Node is unmounted!\n\n- Are you using a custom target that isn't mounted?\n- Does your document not have a valid head element?\n- Have you accidentally removed a style tag manually?\n\n",7:'ThemeProvider: Please return an object from your "theme" prop function, e.g.\n\n```js\ntheme={() => ({})}\n```\n\n',8:'ThemeProvider: Please make your "theme" prop an object.\n\n',9:"Missing document `<head>`\n\n",10:"Cannot find a StyleSheet instance. Usually this happens if there are multiple copies of styled-components loaded at once. Check out this issue for how to troubleshoot and fix the common cases where this situation can happen: https://github.com/styled-components/styled-components/issues/1941#issuecomment-417862021\n\n",11:"_This error was replaced with a dev-time warning, it will be deleted for v4 final._ [createGlobalStyle] received children which will not be rendered. Please use the component without passing children elements.\n\n",12:"It seems you are interpolating a keyframe declaration (%s) into an untagged string. This was supported in styled-components v3, but is not longer supported in v4 as keyframes are now injected on-demand. Please wrap your string in the css\\`\\` helper which ensures the styles are injected correctly. See https://www.styled-components.com/docs/api#css\n\n",13:"%s is not a styled component and cannot be referred to via component selector. See https://www.styled-components.com/docs/advanced#referring-to-other-components for more details.\n\n",14:'ThemeProvider: "theme" prop is required.\n\n',15:"A stylis plugin has been supplied that is not named. We need a name for each plugin to be able to prevent styling collisions between different stylis configurations within the same app. Before you pass your plugin to `<StyleSheetManager stylisPlugins={[]}>`, please make sure each plugin is uniquely-named, e.g.\n\n```js\nObject.defineProperty(importedPlugin, 'name', { value: 'some-unique-name' });\n```\n\n",16:"Reached the limit of how many styled components may be created at group %s.\nYou may only create up to 1,073,741,824 components. If you're creating components dynamically,\nas for instance in your render method then you may be running into this limitation.\n\n",17:"CSSStyleSheet could not be found on HTMLStyleElement.\nHas styled-components' style tag been unmounted or altered by another script?\n"}:{};function R(){for(var e=arguments.length<=0?void 0:arguments[0],t=[],n=1,r=arguments.length;n<r;n+=1)t.push(n<0||arguments.length<=n?void 0:arguments[n]);return t.forEach((function(t){e=e.replace(/%[a-z]/,t);})),e}function D(e){for(var t=arguments.length,n=new Array(t>1?t-1:0),r=1;r<t;r++)n[r-1]=arguments[r];throw "production"===process.env.NODE_ENV?new Error("An error occurred. See https://git.io/JUIaE#"+e+" for more information."+(n.length>0?" Args: "+n.join(", "):"")):new Error(R.apply(void 0,[O[e]].concat(n)).trim())}var j=function(){function e(e){this.groupSizes=new Uint32Array(512),this.length=512,this.tag=e;}var t=e.prototype;return t.indexOfGroup=function(e){for(var t=0,n=0;n<e;n++)t+=this.groupSizes[n];return t},t.insertRules=function(e,t){if(e>=this.groupSizes.length){for(var n=this.groupSizes,r=n.length,o=r;e>=o;)(o<<=1)<0&&D(16,""+e);this.groupSizes=new Uint32Array(o),this.groupSizes.set(n),this.length=o;for(var s=r;s<o;s++)this.groupSizes[s]=0;}for(var i=this.indexOfGroup(e+1),a=0,c=t.length;a<c;a++)this.tag.insertRule(i,t[a])&&(this.groupSizes[e]++,i++);},t.clearGroup=function(e){if(e<this.length){var t=this.groupSizes[e],n=this.indexOfGroup(e),r=n+t;this.groupSizes[e]=0;for(var o=n;o<r;o++)this.tag.deleteRule(n);}},t.getGroup=function(e){var t="";if(e>=this.length||0===this.groupSizes[e])return t;for(var n=this.groupSizes[e],r=this.indexOfGroup(e),o=r+n,s=r;s<o;s++)t+=this.tag.getRule(s)+"/*!sc*/\n";return t},e}(),T=new Map,x=new Map,k=1,V=function(e){if(T.has(e))return T.get(e);for(;x.has(k);)k++;var t=k++;return "production"!==process.env.NODE_ENV&&((0|t)<0||t>1<<30)&&D(16,""+t),T.set(e,t),x.set(t,e),t},z=function(e){return x.get(e)},B=function(e,t){t>=k&&(k=t+1),T.set(e,t),x.set(t,e);},M="style["+N+'][data-styled-version="5.3.6"]',G=new RegExp("^"+N+'\\.g(\\d+)\\[id="([\\w\\d-]+)"\\].*?"([^"]*)'),L=function(e,t,n){for(var r,o=n.split(","),s=0,i=o.length;s<i;s++)(r=o[s])&&e.registerName(t,r);},F=function(e,t){for(var n=(t.textContent||"").split("/*!sc*/\n"),r=[],o=0,s=n.length;o<s;o++){var i=n[o].trim();if(i){var a=i.match(G);if(a){var c=0|parseInt(a[1],10),u=a[2];0!==c&&(B(u,c),L(e,u,a[3]),e.getTag().insertRules(c,r)),r.length=0;}else r.push(i);}}},Y=function(){return "undefined"!=typeof __webpack_nonce__?__webpack_nonce__:null},q=function(e){var t=document.head,n=e||t,r=document.createElement("style"),o=function(e){for(var t=e.childNodes,n=t.length;n>=0;n--){var r=t[n];if(r&&1===r.nodeType&&r.hasAttribute(N))return r}}(n),s=void 0!==o?o.nextSibling:null;r.setAttribute(N,"active"),r.setAttribute("data-styled-version","5.3.6");var i=Y();return i&&r.setAttribute("nonce",i),n.insertBefore(r,s),r},H=function(){function e(e){var t=this.element=q(e);t.appendChild(document.createTextNode("")),this.sheet=function(e){if(e.sheet)return e.sheet;for(var t=document.styleSheets,n=0,r=t.length;n<r;n++){var o=t[n];if(o.ownerNode===e)return o}D(17);}(t),this.length=0;}var t=e.prototype;return t.insertRule=function(e,t){try{return this.sheet.insertRule(t,e),this.length++,!0}catch(e){return !1}},t.deleteRule=function(e){this.sheet.deleteRule(e),this.length--;},t.getRule=function(e){var t=this.sheet.cssRules[e];return void 0!==t&&"string"==typeof t.cssText?t.cssText:""},e}(),$=function(){function e(e){var t=this.element=q(e);this.nodes=t.childNodes,this.length=0;}var t=e.prototype;return t.insertRule=function(e,t){if(e<=this.length&&e>=0){var n=document.createTextNode(t),r=this.nodes[e];return this.element.insertBefore(n,r||null),this.length++,!0}return !1},t.deleteRule=function(e){this.element.removeChild(this.nodes[e]),this.length--;},t.getRule=function(e){return e<this.length?this.nodes[e].textContent:""},e}(),W=function(){function e(e){this.rules=[],this.length=0;}var t=e.prototype;return t.insertRule=function(e,t){return e<=this.length&&(this.rules.splice(e,0,t),this.length++,!0)},t.deleteRule=function(e){this.rules.splice(e,1),this.length--;},t.getRule=function(e){return e<this.length?this.rules[e]:""},e}(),U=C,J={isServer:!C,useCSSOMInjection:!I},X=function(){function e(e,t,n){void 0===e&&(e=w),void 0===t&&(t={}),this.options=y({},J,{},e),this.gs=t,this.names=new Map(n),this.server=!!e.isServer,!this.server&&C&&U&&(U=!1,function(e){for(var t=document.querySelectorAll(M),n=0,r=t.length;n<r;n++){var o=t[n];o&&"active"!==o.getAttribute(N)&&(F(e,o),o.parentNode&&o.parentNode.removeChild(o));}}(this));}e.registerId=function(e){return V(e)};var t=e.prototype;return t.reconstructWithOptions=function(t,n){return void 0===n&&(n=!0),new e(y({},this.options,{},t),this.gs,n&&this.names||void 0)},t.allocateGSInstance=function(e){return this.gs[e]=(this.gs[e]||0)+1},t.getTag=function(){return this.tag||(this.tag=(n=(t=this.options).isServer,r=t.useCSSOMInjection,o=t.target,e=n?new W(o):r?new H(o):new $(o),new j(e)));var e,t,n,r,o;},t.hasNameForId=function(e,t){return this.names.has(e)&&this.names.get(e).has(t)},t.registerName=function(e,t){if(V(e),this.names.has(e))this.names.get(e).add(t);else {var n=new Set;n.add(t),this.names.set(e,n);}},t.insertRules=function(e,t,n){this.registerName(e,t),this.getTag().insertRules(V(e),n);},t.clearNames=function(e){this.names.has(e)&&this.names.get(e).clear();},t.clearRules=function(e){this.getTag().clearGroup(V(e)),this.clearNames(e);},t.clearTag=function(){this.tag=void 0;},t.toString=function(){return function(e){for(var t=e.getTag(),n=t.length,r="",o=0;o<n;o++){var s=z(o);if(void 0!==s){var i=e.names.get(s),a=t.getGroup(o);if(i&&a&&i.size){var c=N+".g"+o+'[id="'+s+'"]',u="";void 0!==i&&i.forEach((function(e){e.length>0&&(u+=e+",");})),r+=""+a+c+'{content:"'+u+'"}/*!sc*/\n';}}}return r}(this)},e}(),Z=/(a)(d)/gi,K=function(e){return String.fromCharCode(e+(e>25?39:97))};function Q(e){var t,n="";for(t=Math.abs(e);t>52;t=t/52|0)n=K(t%52)+n;return (K(t%52)+n).replace(Z,"$1-$2")}var ee=function(e,t){for(var n=t.length;n;)e=33*e^t.charCodeAt(--n);return e},te=function(e){return ee(5381,e)};function ne(e){for(var t=0;t<e.length;t+=1){var n=e[t];if(E(n)&&!_(n))return !1}return !0}var re=te("5.3.6"),oe=function(){function e(e,t,n){this.rules=e,this.staticRulesId="",this.isStatic="production"===process.env.NODE_ENV&&(void 0===n||n.isStatic)&&ne(e),this.componentId=t,this.baseHash=ee(re,t),this.baseStyle=n,X.registerId(t);}return e.prototype.generateAndInjectStyles=function(e,t,n){var r=this.componentId,o=[];if(this.baseStyle&&o.push(this.baseStyle.generateAndInjectStyles(e,t,n)),this.isStatic&&!n.hash)if(this.staticRulesId&&t.hasNameForId(r,this.staticRulesId))o.push(this.staticRulesId);else {var s=_e(this.rules,e,t,n).join(""),i=Q(ee(this.baseHash,s)>>>0);if(!t.hasNameForId(r,i)){var a=n(s,"."+i,void 0,r);t.insertRules(r,i,a);}o.push(i),this.staticRulesId=i;}else {for(var c=this.rules.length,u=ee(this.baseHash,n.hash),l="",d=0;d<c;d++){var h=this.rules[d];if("string"==typeof h)l+=h,"production"!==process.env.NODE_ENV&&(u=ee(u,h+d));else if(h){var p=_e(h,e,t,n),f=Array.isArray(p)?p.join(""):p;u=ee(u,f+d),l+=f;}}if(l){var m=Q(u>>>0);if(!t.hasNameForId(r,m)){var y=n(l,"."+m,void 0,r);t.insertRules(r,m,y);}o.push(m);}}return o.join(" ")},e}(),se=/^\s*\/\/.*$/gm,ie=[":","[",".","#"];function ae(e){var t,n,r,o,s=void 0===e?w:e,i=s.options,a=void 0===i?w:i,c=s.plugins,u=void 0===c?S:c,l=new stylis_min(a),d=[],p=function(e){function t(t){if(t)try{e(t+"}");}catch(e){}}return function(n,r,o,s,i,a,c,u,l,d){switch(n){case 1:if(0===l&&64===r.charCodeAt(0))return e(r+";"),"";break;case 2:if(0===u)return r+"/*|*/";break;case 3:switch(u){case 102:case 112:return e(o[0]+r),"";default:return r+(0===d?"/*|*/":"")}case-2:r.split("/*|*/}").forEach(t);}}}((function(e){d.push(e);})),f=function(e,r,s){return 0===r&&-1!==ie.indexOf(s[n.length])||s.match(o)?e:"."+t};function m(e,s,i,a){void 0===a&&(a="&");var c=e.replace(se,""),u=s&&i?i+" "+s+" { "+c+" }":c;return t=a,n=s,r=new RegExp("\\"+n+"\\b","g"),o=new RegExp("(\\"+n+"\\b){2,}"),l(i||!s?"":s,u)}return l.use([].concat(u,[function(e,t,o){2===e&&o.length&&o[0].lastIndexOf(n)>0&&(o[0]=o[0].replace(r,f));},p,function(e){if(-2===e){var t=d;return d=[],t}}])),m.hash=u.length?u.reduce((function(e,t){return t.name||D(15),ee(e,t.name)}),5381).toString():"",m}var ce=r.createContext();ce.Consumer;var le=r.createContext(),de=(le.Consumer,new X),he=ae();function pe(){return r.useContext(ce)||de}function fe(){return r.useContext(le)||he}var ye=function(){function e(e,t){var n=this;this.inject=function(e,t){void 0===t&&(t=he);var r=n.name+t.hash;e.hasNameForId(n.id,r)||e.insertRules(n.id,r,t(n.rules,r,"@keyframes"));},this.toString=function(){return D(12,String(n.name))},this.name=e,this.id="sc-keyframes-"+e,this.rules=t;}return e.prototype.getName=function(e){return void 0===e&&(e=he),this.name+e.hash},e}(),ve=/([A-Z])/,ge=/([A-Z])/g,Se=/^ms-/,we=function(e){return "-"+e.toLowerCase()};function Ee(e){return ve.test(e)?e.replace(ge,we).replace(Se,"-ms-"):e}var be=function(e){return null==e||!1===e||""===e};function _e(e,n,r,o){if(Array.isArray(e)){for(var s,i=[],a=0,c=e.length;a<c;a+=1)""!==(s=_e(e[a],n,r,o))&&(Array.isArray(s)?i.push.apply(i,s):i.push(s));return i}if(be(e))return "";if(_(e))return "."+e.styledComponentId;if(E(e)){if("function"!=typeof(l=e)||l.prototype&&l.prototype.isReactComponent||!n)return e;var u=e(n);return "production"!==process.env.NODE_ENV&&reactIs$2.exports.isElement(u)&&console.warn(b(e)+" is not a styled component and cannot be referred to via component selector. See https://www.styled-components.com/docs/advanced#referring-to-other-components for more details."),_e(u,n,r,o)}var l;return e instanceof ye?r?(e.inject(r,o),e.getName(o)):e:g(e)?function e(t,n){var r,o,s=[];for(var i in t)t.hasOwnProperty(i)&&!be(t[i])&&(Array.isArray(t[i])&&t[i].isCss||E(t[i])?s.push(Ee(i)+":",t[i],";"):g(t[i])?s.push.apply(s,e(t[i],i)):s.push(Ee(i)+": "+(r=i,null==(o=t[i])||"boolean"==typeof o||""===o?"":"number"!=typeof o||0===o||r in unitlessKeys?String(o).trim():o+"px")+";"));return n?[n+" {"].concat(s,["}"]):s}(e):e.toString()}var Ne=function(e){return Array.isArray(e)&&(e.isCss=!0),e};function Ae(e){for(var t=arguments.length,n=new Array(t>1?t-1:0),r=1;r<t;r++)n[r-1]=arguments[r];return E(e)||g(e)?Ne(_e(v(S,[e].concat(n)))):0===n.length&&1===e.length&&"string"==typeof e[0]?e:Ne(_e(v(e,n)))}var Ce=/invalid hook call/i,Ie=new Set,Pe=function(e,t){if("production"!==process.env.NODE_ENV){var n="The component "+e+(t?' with the id of "'+t+'"':"")+" has been created dynamically.\nYou may see this warning because you've called styled inside another component.\nTo resolve this only create new StyledComponents outside of any render method and function component.",r$1=console.error;try{var o=!0;console.error=function(e){if(Ce.test(e))o=!1,Ie.delete(n);else {for(var t=arguments.length,s=new Array(t>1?t-1:0),i=1;i<t;i++)s[i-1]=arguments[i];r$1.apply(void 0,[e].concat(s));}},r.useRef(),o&&!Ie.has(n)&&(console.warn(n),Ie.add(n));}catch(e){Ce.test(e.message)&&Ie.delete(n);}finally{console.error=r$1;}}},Oe=function(e,t,n){return void 0===n&&(n=w),e.theme!==n.theme&&e.theme||t||n.theme},Re=/[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~-]+/g,De=/(^-|-$)/g;function je(e){return e.replace(Re,"-").replace(De,"")}var Te=function(e){return Q(te(e)>>>0)};function xe(e){return "string"==typeof e&&("production"===process.env.NODE_ENV||e.charAt(0)===e.charAt(0).toLowerCase())}var ke=function(e){return "function"==typeof e||"object"==typeof e&&null!==e&&!Array.isArray(e)},Ve=function(e){return "__proto__"!==e&&"constructor"!==e&&"prototype"!==e};function ze(e,t,n){var r=e[n];ke(t)&&ke(r)?Be(r,t):e[n]=t;}function Be(e){for(var t=arguments.length,n=new Array(t>1?t-1:0),r=1;r<t;r++)n[r-1]=arguments[r];for(var o=0,s=n;o<s.length;o++){var i=s[o];if(ke(i))for(var a in i)Ve(a)&&ze(e,i[a],a);}return e}var Me=r.createContext();Me.Consumer;var Fe={};function Ye(e,t,n){var o=_(e),i=!xe(e),a=t.attrs,c=void 0===a?S:a,d=t.componentId,h=void 0===d?function(e,t){var n="string"!=typeof e?"sc":je(e);Fe[n]=(Fe[n]||0)+1;var r=n+"-"+Te("5.3.6"+n+Fe[n]);return t?t+"-"+r:r}(t.displayName,t.parentComponentId):d,p=t.displayName,v=void 0===p?function(e){return xe(e)?"styled."+e:"Styled("+b(e)+")"}(e):p,g=t.displayName&&t.componentId?je(t.displayName)+"-"+t.componentId:t.componentId||h,N=o&&e.attrs?Array.prototype.concat(e.attrs,c).filter(Boolean):c,A=t.shouldForwardProp;o&&e.shouldForwardProp&&(A=t.shouldForwardProp?function(n,r,o){return e.shouldForwardProp(n,r,o)&&t.shouldForwardProp(n,r,o)}:e.shouldForwardProp);var C,I=new oe(n,g,o?e.componentStyle:void 0),P=I.isStatic&&0===c.length,O=function(e,t){return function(e,t,n,r$1){var o=e.attrs,i=e.componentStyle,a=e.defaultProps,c=e.foldedComponentIds,d=e.shouldForwardProp,h=e.styledComponentId,p=e.target;"production"!==process.env.NODE_ENV&&r.useDebugValue(h);var m=function(e,t,n){void 0===e&&(e=w);var r=y({},t,{theme:e}),o={};return n.forEach((function(e){var t,n,s,i=e;for(t in E(i)&&(i=i(r)),i)r[t]=o[t]="className"===t?(n=o[t],s=i[t],n&&s?n+" "+s:n||s):i[t];})),[r,o]}(Oe(t,r.useContext(Me),a)||w,t,o),v=m[0],g=m[1],S=function(e,t,n,r$1){var o=pe(),s=fe(),i=t?e.generateAndInjectStyles(w,o,s):e.generateAndInjectStyles(n,o,s);return "production"!==process.env.NODE_ENV&&r.useDebugValue(i),"production"!==process.env.NODE_ENV&&!t&&r$1&&r$1(i),i}(i,r$1,v,"production"!==process.env.NODE_ENV?e.warnTooManyClasses:void 0),b=n,_=g.$as||t.$as||g.as||t.as||p,N=xe(_),A=g!==t?y({},t,{},g):t,C={};for(var I in A)"$"!==I[0]&&"as"!==I&&("forwardedAs"===I?C.as=A[I]:(d?d(I,isPropValid,_):!N||isPropValid(I))&&(C[I]=A[I]));return t.style&&g.style!==t.style&&(C.style=y({},t.style,{},g.style)),C.className=Array.prototype.concat(c,h,S!==h?S:null,t.className,g.className).filter(Boolean).join(" "),C.ref=b,r.createElement(_,C)}(C,e,t,P)};return O.displayName=v,(C=r.forwardRef(O)).attrs=N,C.componentStyle=I,C.displayName=v,C.shouldForwardProp=A,C.foldedComponentIds=o?Array.prototype.concat(e.foldedComponentIds,e.styledComponentId):S,C.styledComponentId=g,C.target=o?e.target:e,C.withComponent=function(e){var r=t.componentId,o=function(e,t){if(null==e)return {};var n,r,o={},s=Object.keys(e);for(r=0;r<s.length;r++)n=s[r],t.indexOf(n)>=0||(o[n]=e[n]);return o}(t,["componentId"]),s=r&&r+"-"+(xe(e)?e:je(b(e)));return Ye(e,y({},o,{attrs:N,componentId:s}),n)},Object.defineProperty(C,"defaultProps",{get:function(){return this._foldedDefaultProps},set:function(t){this._foldedDefaultProps=o?Be({},e.defaultProps,t):t;}}),"production"!==process.env.NODE_ENV&&(Pe(v,g),C.warnTooManyClasses=function(e,t){var n={},r=!1;return function(o){if(!r&&(n[o]=!0,Object.keys(n).length>=200)){var s=t?' with the id of "'+t+'"':"";console.warn("Over 200 classes were generated for component "+e+s+".\nConsider using the attrs method, together with a style object for frequently changed styles.\nExample:\n  const Component = styled.div.attrs(props => ({\n    style: {\n      background: props.background,\n    },\n  }))`width: 100%;`\n\n  <Component />"),r=!0,n={};}}}(v,g)),C.toString=function(){return "."+C.styledComponentId},i&&hoistNonReactStatics_cjs(C,e,{attrs:!0,componentStyle:!0,displayName:!0,foldedComponentIds:!0,shouldForwardProp:!0,styledComponentId:!0,target:!0,withComponent:!0}),C}var qe=function(e){return function e(t,r,o){if(void 0===o&&(o=w),!reactIs$2.exports.isValidElementType(r))return D(1,String(r));var s=function(){return t(r,o,Ae.apply(void 0,arguments))};return s.withConfig=function(n){return e(t,r,y({},o,{},n))},s.attrs=function(n){return e(t,r,y({},o,{attrs:Array.prototype.concat(o.attrs,n).filter(Boolean)}))},s}(Ye,e)};["a","abbr","address","area","article","aside","audio","b","base","bdi","bdo","big","blockquote","body","br","button","canvas","caption","cite","code","col","colgroup","data","datalist","dd","del","details","dfn","dialog","div","dl","dt","em","embed","fieldset","figcaption","figure","footer","form","h1","h2","h3","h4","h5","h6","head","header","hgroup","hr","html","i","iframe","img","input","ins","kbd","keygen","label","legend","li","link","main","map","mark","marquee","menu","menuitem","meta","meter","nav","noscript","object","ol","optgroup","option","output","p","param","picture","pre","progress","q","rp","rt","ruby","s","samp","script","section","select","small","source","span","strong","style","sub","summary","sup","table","tbody","td","textarea","tfoot","th","thead","time","title","tr","track","u","ul","var","video","wbr","circle","clipPath","defs","ellipse","foreignObject","g","image","line","linearGradient","marker","mask","path","pattern","polygon","polyline","radialGradient","rect","stop","svg","text","textPath","tspan"].forEach((function(e){qe[e]=qe(e);}));"production"!==process.env.NODE_ENV&&"undefined"!=typeof navigator&&"ReactNative"===navigator.product&&console.warn("It looks like you've imported 'styled-components' on React Native.\nPerhaps you're looking to import 'styled-components/native'?\nRead more about this at https://www.styled-components.com/docs/basics#react-native"),"production"!==process.env.NODE_ENV&&"test"!==process.env.NODE_ENV&&"undefined"!=typeof window&&(window["__styled-components-init__"]=window["__styled-components-init__"]||0,1===window["__styled-components-init__"]&&console.warn("It looks like there are several instances of 'styled-components' initialized in this application. This may cause dynamic styles to not render properly, errors during the rehydration process, a missing theme prop, and makes your application bigger without good reason.\n\nSee https://s-c.sh/2BAXzed for more info."),window["__styled-components-init__"]+=1);var styled = qe;
 
 var TOASTS = {
   INFO: 'info',
@@ -4950,7 +1504,7 @@ function Toast(_ref) {
     content = toast.content,
     heading = toast.heading,
     icon = toast.icon;
-  var styles = useSpring({
+  var styles = reactSpring.useSpring({
     from: {
       y: animation === ANIMATION.BOTTOM ? 1000 : 0,
       x: animation === ANIMATION.RIGHT_SIDE ? 500 : 0
@@ -4963,17 +1517,17 @@ function Toast(_ref) {
   var handleOnCloseToastClick = function handleOnCloseToastClick() {
     onCloseToastClick(id);
   };
-  return /*#__PURE__*/React.createElement(Container$1, {
+  return /*#__PURE__*/r.createElement(Container$1, {
     style: styles,
-    as: animated.div,
+    as: reactSpring.animated.div,
     color: color,
     variant: variant,
     gap: toast['space between toasts']
-  }, /*#__PURE__*/React.createElement(Icon, {
+  }, /*#__PURE__*/r.createElement(Icon, {
     src: icon
-  }), /*#__PURE__*/React.createElement(Body, null, /*#__PURE__*/React.createElement(Heading, null, heading), /*#__PURE__*/React.createElement(Content, null, content)), /*#__PURE__*/React.createElement(Close, {
+  }), /*#__PURE__*/r.createElement(Body, null, /*#__PURE__*/r.createElement(Heading, null, heading), /*#__PURE__*/r.createElement(Content, null, content)), /*#__PURE__*/r.createElement(Close, {
     onClick: handleOnCloseToastClick
-  }, /*#__PURE__*/React.createElement(CloseImg, {
+  }, /*#__PURE__*/r.createElement(CloseImg, {
     src: img$4,
     alt: "close"
   })));
@@ -5059,28 +1613,44 @@ var getDefaultToast = function getDefaultToast(toastVariant) {
         icon: img$3,
         heading: 'Info toast',
         content: 'Info toast description',
-        color: "".concat(toastColors.purple)
+        color: "".concat(toastColors.purple),
+        position: 'top-right',
+        autoCloseTime: 5000,
+        animation: 'from bottom',
+        'space between toasts': 'medium'
       };
     case TOASTS.WARNING:
       return {
         icon: img$2,
         heading: 'Warning toast',
         content: 'Warning toast description',
-        color: "".concat(toastColors.yellow)
+        color: "".concat(toastColors.yellow),
+        position: 'top-right',
+        autoCloseTime: 5000,
+        animation: 'from bottom',
+        'space between toasts': 'medium'
       };
     case TOASTS.ERROR:
       return {
         icon: img$1,
         heading: 'Error toast',
         content: 'Error toast description',
-        color: "".concat(toastColors.tomato)
+        color: "".concat(toastColors.tomato),
+        position: 'top-right',
+        autoCloseTime: 5000,
+        animation: 'from bottom',
+        'space between toasts': 'medium'
       };
     case TOASTS.SUCCESS:
       return {
         icon: img,
         heading: 'Success toast',
         content: 'Success toast description',
-        color: "".concat(toastColors.green)
+        color: "".concat(toastColors.green),
+        position: 'top-right',
+        autoCloseTime: 5000,
+        animation: 'from bottom',
+        'space between toasts': 'medium'
       };
     default:
       return {};
@@ -5106,7 +1676,11 @@ var ToastSingletone = /*#__PURE__*/function () {
         icon: defaultPeoperties.icon,
         heading: properties.heading || defaultPeoperties.heading,
         content: properties.content || defaultPeoperties.content,
-        color: properties.color || defaultPeoperties.color
+        color: properties.color || defaultPeoperties.color,
+        position: properties.position || defaultPeoperties.position,
+        autoCloseTime: properties.autoCloseTime || defaultPeoperties.autoCloseTime,
+        animation: properties.animation || defaultPeoperties.color,
+        'space between toasts': properties['space between toasts'] || defaultPeoperties['space between toasts']
       });
     }
   }, {
@@ -5131,16 +1705,16 @@ var ToastSingletone = /*#__PURE__*/function () {
 var toast = new ToastSingletone();
 
 var useToastAutoClose = function useToastAutoClose(toasts, removeToast, autoCloseTime) {
-  var _useState = React.useState(''),
+  var _useState = r.useState(''),
     _useState2 = _slicedToArray(_useState, 2),
     removing = _useState2[0],
     setRemoving = _useState2[1];
-  React.useEffect(function () {
+  r.useEffect(function () {
     if (removing) {
       removeToast(removing);
     }
   }, [removing]);
-  React.useEffect(function () {
+  r.useEffect(function () {
     if (toasts.length) {
       var id = toasts[toasts.length - 1].id;
       setTimeout(function () {
@@ -5151,14 +1725,14 @@ var useToastAutoClose = function useToastAutoClose(toasts, removeToast, autoClos
 };
 
 var useToastPortal = function useToastPortal(position) {
-  var _useState = React.useState(false),
+  var _useState = r.useState(false),
     _useState2 = _slicedToArray(_useState, 2),
     loaded = _useState2[0],
     setLoaded = _useState2[1];
-  var _useState3 = React.useState("toast-portal-".concat(v4())),
+  var _useState3 = r.useState("toast-portal-".concat(v4())),
     _useState4 = _slicedToArray(_useState3, 1),
     portalId = _useState4[0];
-  React.useLayoutEffect(function () {
+  r.useLayoutEffect(function () {
     var div = document.createElement('div');
     div.id = portalId;
     div.style.cssText = "\n      position: fixed;\n      left: ".concat(position.includes('left') ? "".concat(spaces.xs, "px") : null, ";\n      right: ").concat(position.includes('right') ? "".concat(spaces.xs, "px") : null, ";\n      top: ").concat(position.includes('top') ? "".concat(spaces.xs, "px") : null, ";\n      bottom: ").concat(position.includes('bottom') ? "".concat(spaces.xs, "px") : null, ";\n      z-index: 1000;\n    ");
@@ -5178,44 +1752,32 @@ var _templateObject;
 var Container = styled.div(_templateObject || (_templateObject = _taggedTemplateLiteral(["\n  gap: ", ";\n  display: flex;\n  flex-direction: column;\n"])), spaces.xxs);
 
 function ToastList(_ref) {
-  var toastList = _ref.toastList,
+  var toasts = _ref.toasts,
     properties = _ref.properties;
-  var _useState = React.useState([]),
+  console.log(toasts);
+  var _useState = r.useState([]),
     _useState2 = _slicedToArray(_useState, 2),
-    toasts = _useState2[0],
-    setToasts = _useState2[1];
+    toastList = _useState2[0],
+    setToastList = _useState2[1];
   var _useToastPortal = useToastPortal(properties.position),
     loaded = _useToastPortal.loaded,
     portalId = _useToastPortal.portalId;
-  React.useLayoutEffect(function () {
-    setToasts(toastList);
+  r.useLayoutEffect(function () {
+    setToastList(toasts);
   }, [toastList]);
   var removeToast = function removeToast(id) {
-    setToasts(toast.removeToast(id));
+    setToastList(toast.removeToast(id));
   };
   useToastAutoClose(toasts, removeToast, properties.autoCloseTime);
-  return loaded ? /*#__PURE__*/reactDom.createPortal( /*#__PURE__*/React.createElement(Container, null, toasts.map(function (t) {
-    return /*#__PURE__*/React.createElement(Toast, {
+  return loaded ? /*#__PURE__*/reactDom.createPortal( /*#__PURE__*/r.createElement(Container, null, toastList.map(function (t) {
+    return /*#__PURE__*/r.createElement(Toast, {
       key: t.id,
       toast: t,
       onCloseToastClick: removeToast
     });
   })), document.getElementById(portalId)) : null;
 }
-PropTypes.shape({
-  animation: PropTypes.string,
-  autoCloseTime: PropTypes.number,
-  color: PropTypes.string,
-  content: PropTypes.string,
-  gap: PropTypes.string,
-  heading: PropTypes.string,
-  icon: PropTypes.string,
-  id: PropTypes.string,
-  position: PropTypes.string,
-  variant: PropTypes.string
-});
-var ToastList$1 = /*#__PURE__*/React.memo(ToastList);
+var ToastList$1 = /*#__PURE__*/r.memo(ToastList);
 
 exports.ToastList = ToastList$1;
 exports.toast = toast;
-//# sourceMappingURL=toast-toastique.js.map

@@ -1,4 +1,3 @@
-/* eslint-disable no-underscore-dangle */
 import peerDepsExternal from 'rollup-plugin-peer-deps-external';
 import resolve, {
   nodeResolve,
@@ -22,21 +21,18 @@ const customResolver = resolve({
 const projectRootDir = path.resolve(__dirname);
 
 export default {
-  input: 'src/index.js',
+  input: './src/index.js',
   output: [
     {
       file: packageJson.main,
       format: 'cjs',
-      sourcemap: true,
     },
     {
       file: packageJson.module,
       format: 'esm',
-      sourcemap: true,
     },
   ],
   plugins: [
-    peerDepsExternal(),
     resolve({
       extensions: ['.mjs', '.js', '.jsx', '.json'],
     }),
@@ -53,11 +49,14 @@ export default {
       exclude: 'node_modules/**',
       presets: ['@babel/env', '@babel/preset-react'],
     }),
-    commonjs(),
-    image(),
-    stripPropTypes({
-      sourceMap: true,
+    commonjs({
+      include: ['./index.js', 'node_modules/**'],
     }),
+    image(),
+    stripPropTypes(),
     nodeResolve(),
+    peerDepsExternal({
+      includeDependencies: true,
+    }),
   ],
 };
