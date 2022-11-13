@@ -16,7 +16,7 @@ const ToastPortal = forwardRef((properties, ref) => {
   }));
 
   return (
-    <ToastList toastList={toastList} properties={properties} />
+    <ToastList toast={toast} toastList={toastList} properties={properties} />
   );
 });
 

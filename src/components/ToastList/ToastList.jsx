@@ -2,13 +2,12 @@ import React, { useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import Toast from '@/components/Toast/Toast';
-import toast from '@/utils/ToastSingletone/ToastSingletone';
 import useToastAutoClose from '@/hooks/useToastAutoClose';
 import useToastPortal from '@/hooks/useToastPortal';
 import { Container } from './styled';
 
-function ToastList({ toastList, properties }) {
-  const [toasts, setToasts] = useState([]);
+function ToastList({ toast, toastList, properties }) {
+  const [toasts, setToasts] = useState(toastList);
   const { loaded, portalId } = useToastPortal(
     properties.position,
   );
@@ -57,6 +56,10 @@ const toastsPropsType = PropTypes.shape({
 });
 
 ToastList.propTypes = {
+  toast: PropTypes.shape({
+    toasts: PropTypes.arrayOf(toastsPropsType),
+    removeToast: PropTypes.func,
+  }).isRequired,
   toastList: PropTypes.arrayOf(toastsPropsType).isRequired,
   properties: toastsPropsType.isRequired,
 };
