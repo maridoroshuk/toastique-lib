@@ -1,6 +1,6 @@
 import React, {
-  useImperativeHandle,
   forwardRef,
+  useImperativeHandle,
   useState,
 } from 'react';
 import toast from '@/utils/ToastSingletone/ToastSingletone';
@@ -11,12 +11,17 @@ const ToastPortal = forwardRef((properties, ref) => {
 
   useImperativeHandle(ref, () => ({
     addToasts(variant, args) {
-      setToastList(toast.getToasts(variant, args));
+      toast.addToast(variant, args);
+      setToastList(toast.getToasts());
     },
   }));
 
   return (
-    <ToastList toast={toast} toastList={toastList} properties={properties} />
+    <ToastList
+      toast={toast}
+      toastList={toastList}
+      properties={properties}
+    />
   );
 });
 

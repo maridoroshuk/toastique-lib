@@ -27,11 +27,14 @@ class ToastSingletone {
       position:
         properties?.position || defaultPeoperties.position,
       autoCloseTime:
-        properties?.autoCloseTime || defaultPeoperties.autoCloseTime,
+        properties?.autoCloseTime
+        || defaultPeoperties.autoCloseTime,
       animation:
         properties?.animation || defaultPeoperties.color,
       'space between toasts':
-        (properties && properties['space between toasts']) || defaultPeoperties['space between toasts'],
+        (properties
+          && properties['space between toasts'])
+        || defaultPeoperties['space between toasts'],
     };
   }
 
@@ -40,14 +43,16 @@ class ToastSingletone {
     return this.toasts;
   }
 
-  getToasts(variant, properties) {
+  addToast(variant, properties) {
     if (this.toasts.length < 3) {
       this.toasts = [
         ...this.toasts,
         this.getToastProperties(variant, properties),
       ];
     }
+  }
 
+  getToasts() {
     return this.toasts;
   }
 }

@@ -9,7 +9,7 @@ import { Container } from './styled';
 function ToastList({ toast, toastList, properties }) {
   const [toasts, setToasts] = useState(toastList);
   const { loaded, portalId } = useToastPortal(
-    properties.position,
+    properties?.position,
   );
 
   useLayoutEffect(() => {
@@ -23,7 +23,7 @@ function ToastList({ toast, toastList, properties }) {
   useToastAutoClose(
     toasts,
     removeToast,
-    properties.autoCloseTime,
+    properties?.autoCloseTime,
   );
 
   return loaded
