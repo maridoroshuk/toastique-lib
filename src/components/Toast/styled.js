@@ -3,9 +3,7 @@ import { TOASTS } from '@/constants/variants';
 import { GAP } from '@/constants/gap';
 import { colors } from '@/theme/colors';
 import { fontSizes, spaces } from '@/theme/sizes';
-
-const WIDTH = '350px';
-const ICON_WIDTH = '30px';
+import { WIDTH, ICON_WIDTH } from '@/constants/toastSizes';
 
 const handleMarginType = (gap) => {
   switch (gap) {
