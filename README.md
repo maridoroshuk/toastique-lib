@@ -1,6 +1,6 @@
 # [toastique-toast](https://www.npmjs.com/package/toastique-toast)
 
-### You can try the [demo here](https://toastique.netlify.app/?path=/story/toast--default).
+### You can try the [demo here](https://toastique.netlify.app/).
 
 ## Installation
 
