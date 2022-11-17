@@ -1,8 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { animated, useSpring } from 'react-spring';
-import { ANIMATION } from '@/constants/animation';
 import CloseIcon from '@/assets/close.png';
+import useAnimation from '@/hooks/useAnimation';
 import {
   Body,
   Close,
@@ -23,16 +22,7 @@ function Toast({ toast, onCloseToastClick }) {
     heading,
     icon,
   } = toast;
-  const styles = useSpring({
-    from: {
-      y: animation === ANIMATION.BOTTOM ? 1000 : 0,
-      x: animation === ANIMATION.RIGHT_SIDE ? 500 : 0,
-    },
-    to: {
-      y: 0,
-      x: 0,
-    },
-  });
+  const { styles, animated } = useAnimation(animation);
 
   const handleOnCloseToastClick = () => {
     onCloseToastClick(id);
