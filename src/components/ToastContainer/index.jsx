@@ -1,8 +1,8 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import ErrorBoundary from '@/components/ErrorBoundary/ErrorBoundary';
-import Button from '@/components/Button/Button';
-import ToastPortal from '@/components/ToastPoartal/ToastPortal';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import ToastPortal from '@/components/ToastPoartal';
+import Button from '@/components/Button';
 
 function ToastContainer({ config, ...args }) {
   const toastRef = useRef();
@@ -15,12 +15,14 @@ function ToastContainer({ config, ...args }) {
     toastRef.current.addToasts(variant, properties);
   };
 
+  const handleOnShow = () => {
+    handleShowToastClick(config, args);
+  };
+
   return (
     <ErrorBoundary>
       <ToastPortal ref={toastRef} {...args} />
-      <Button
-        handleOnShow={() => handleShowToastClick(config, args)}
-      />
+      <Button handleOnShow={handleOnShow} />
     </ErrorBoundary>
   );
 }

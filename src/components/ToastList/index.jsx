@@ -1,7 +1,7 @@
 import React, { useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
-import Toast from '@/components/Toast/Toast';
+import Toast from '@/components/Toast';
 import useToastAutoClose from '@/hooks/useToastAutoClose';
 import useToastPortal from '@/hooks/useToastPortal';
 import { Container } from './styled';

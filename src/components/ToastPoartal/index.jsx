@@ -4,7 +4,7 @@ import React, {
   useState,
 } from 'react';
 import toast from '@/utils/ToastSingletone/ToastSingletone';
-import ToastList from '@/components/ToastList/ToastList';
+import ToastList from '@/components/ToastList';
 
 const ToastPortal = forwardRef((properties, ref) => {
   const [toastList, setToastList] = useState([]);

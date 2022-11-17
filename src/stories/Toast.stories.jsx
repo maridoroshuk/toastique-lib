@@ -10,7 +10,7 @@ import {
 import { POSITION, positions } from '@/constants/position';
 import { TOASTS, variants } from '@/constants/variants';
 import { GAP, gaps } from '@/constants/gap';
-import ToastContainer from '@/components/ToastContainer/ToastContainer';
+import ToastContainer from '@/components/ToastContainer';
 
 export default {
   title: 'Toast',
