@@ -68,8 +68,7 @@ export default {
 };
 
 export function Default(args) {
-  const { variant } = args;
-  return <ToastContainer config={variant} {...args} />;
+  return <ToastContainer {...args} />;
 }
 Default.args = {
   variant: TOASTS.INFO,

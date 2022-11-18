@@ -4,13 +4,17 @@ import PropTypes from 'prop-types';
 import Toast from '@/components/Toast';
 import useToastAutoClose from '@/hooks/useToastAutoClose';
 import useToastPortal from '@/hooks/useToastPortal';
+import getPortalTextPosition from '@/shared/getPortalTextPosition';
 import { Container } from './styled';
 
-function ToastList({ toast, toastList, properties }) {
+function ToastList({
+  toast,
+  toastList,
+  position,
+  autoCloseTime,
+}) {
   const [toasts, setToasts] = useState(toastList);
-  const { loaded, portalId } = useToastPortal(
-    properties?.position,
-  );
+  const { loaded, portalId } = useToastPortal(position);
 
   useLayoutEffect(() => {
     setToasts(toastList);
@@ -20,23 +24,23 @@ function ToastList({ toast, toastList, properties }) {
     setToasts(toast.removeToast(id));
   };
 
-  useToastAutoClose(
-    toasts,
-    removeToast,
-    properties?.autoCloseTime,
-  );
+  useToastAutoClose(toasts, removeToast, autoCloseTime);
+
+  const positionStyle = getPortalTextPosition(position);
 
   return loaded
     ? createPortal(
-      <Container>
-        {toasts.map((t) => (
-          <Toast
-            key={t.id}
-            toast={t}
-            onCloseToastClick={removeToast}
-          />
-        ))}
-      </Container>,
+      <div style={positionStyle}>
+        <Container>
+          {toasts.map((t) => (
+            <Toast
+              key={t.id}
+              toast={t}
+              onCloseToastClick={removeToast}
+            />
+          ))}
+        </Container>
+      </div>,
       document.getElementById(portalId),
     )
     : null;
@@ -61,7 +65,8 @@ ToastList.propTypes = {
     removeToast: PropTypes.func,
   }).isRequired,
   toastList: PropTypes.arrayOf(toastsPropsType).isRequired,
-  properties: toastsPropsType.isRequired,
+  position: PropTypes.string.isRequired,
+  autoCloseTime: PropTypes.number.isRequired,
 };
 
 export default React.memo(ToastList);

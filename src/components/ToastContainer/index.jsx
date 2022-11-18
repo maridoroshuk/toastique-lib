@@ -1,26 +1,28 @@
-import React, { useRef } from 'react';
-import PropTypes from 'prop-types';
+import React, { useState } from 'react';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import ToastPortal from '@/components/ToastPoartal';
 import Button from '@/components/Button';
+import toast from '@/utils/ToastSingletone/ToastSingletone';
+import ToastList from '@/components/ToastList';
 
-function ToastContainer({ config, ...args }) {
-  const toastRef = useRef();
+function ToastContainer({ ...args }) {
+  const [toastList, setToastList] = useState([]);
+  const { variant, position, autoCloseTime } = args;
 
   const handleOnShow = () => {
-    toastRef.current.addToasts(config, args);
+    toast.addToast(variant, args);
+    setToastList(toast.getToasts());
   };
-
   return (
     <ErrorBoundary>
-      <ToastPortal ref={toastRef} {...args} />
+      <ToastList
+        toast={toast}
+        toastList={toastList}
+        position={position}
+        autoCloseTime={autoCloseTime}
+      />
       <Button handleOnShow={handleOnShow} />
     </ErrorBoundary>
   );
 }
-
-ToastContainer.propTypes = {
-  config: PropTypes.string.isRequired,
-};
 
 export default React.memo(ToastContainer);
