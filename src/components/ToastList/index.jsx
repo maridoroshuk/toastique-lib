@@ -4,17 +4,11 @@ import PropTypes from 'prop-types';
 import Toast from '@/components/Toast';
 import useToastAutoClose from '@/hooks/useToastAutoClose';
 import useToastPortal from '@/hooks/useToastPortal';
-import getPortalTextPosition from '@/shared/getPortalTextPosition';
 import { Container } from './styled';
 
-function ToastList({
-  toast,
-  toastList,
-  position,
-  autoCloseTime,
-}) {
+function ToastList({ toast, toastList, autoCloseTime }) {
   const [toasts, setToasts] = useState(toastList);
-  const { loaded, portalId } = useToastPortal(position);
+  const { loaded, portalId } = useToastPortal();
 
   useLayoutEffect(() => {
     setToasts(toastList);
@@ -26,11 +20,15 @@ function ToastList({
 
   useToastAutoClose(toasts, removeToast, autoCloseTime);
 
-  const positionStyle = getPortalTextPosition(position);
-
   return loaded
     ? createPortal(
-      <div style={positionStyle}>
+      <div
+        style={{
+          zIndex: 1000,
+          width: '100%',
+          height: '100%',
+        }}
+      >
         <Container>
           {toasts.map((t) => (
             <Toast
@@ -65,7 +63,6 @@ ToastList.propTypes = {
     removeToast: PropTypes.func,
   }).isRequired,
   toastList: PropTypes.arrayOf(toastsPropsType).isRequired,
-  position: PropTypes.string.isRequired,
   autoCloseTime: PropTypes.number.isRequired,
 };
 
