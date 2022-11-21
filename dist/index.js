@@ -1482,7 +1482,7 @@ var fontSizes = {
 var WIDTH = '350px';
 var ICON_WIDTH = '30px';
 
-var _templateObject$1, _templateObject2, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7;
+var _templateObject$1, _templateObject2$1, _templateObject3, _templateObject4, _templateObject5, _templateObject6, _templateObject7;
 var handleMarginType = function handleMarginType(gap) {
   switch (gap) {
     case GAP.SMALL:
@@ -1495,7 +1495,7 @@ var handleMarginType = function handleMarginType(gap) {
       return "".concat(spaces.s, "px");
   }
 };
-var Container$1 = styled.div(_templateObject$1 || (_templateObject$1 = _taggedTemplateLiteral(["\n  width: ", ";\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: flex-start;\n  padding: ", "px ", "px;\n  margin-bottom: ", ";\n  color: ", ";\n  background-color: ", ";\n  border-radius: ", "px;\n  box-sizing: border-box;\n  transition: 0.2s;\n  font-family: sans-serif;\n"])), WIDTH, spaces.s, spaces.l, function (_ref) {
+var Container$1 = styled.div(_templateObject$1 || (_templateObject$1 = _taggedTemplateLiteral(["\n  width: ", ";\n  display: flex;\n  z-index: 1000;\n  position: relative;\n  align-items: center;\n  justify-content: flex-start;\n  padding: ", "px ", "px;\n  margin-bottom: ", ";\n  color: ", ";\n  background-color: ", ";\n  border-radius: ", "px;\n  box-sizing: border-box;\n  transition: 0.2s;\n  font-family: sans-serif;\n"])), WIDTH, spaces.s, spaces.l, function (_ref) {
   var gap = _ref.gap;
   return handleMarginType(gap);
 }, function (_ref2) {
@@ -1505,7 +1505,7 @@ var Container$1 = styled.div(_templateObject$1 || (_templateObject$1 = _taggedTe
   var color = _ref3.color;
   return color;
 }, spaces.l);
-var Icon = styled.img(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["\n  width: 100%;\n  max-width: ", ";\n"])), ICON_WIDTH);
+var Icon = styled.img(_templateObject2$1 || (_templateObject2$1 = _taggedTemplateLiteral(["\n  width: 100%;\n  max-width: ", ";\n"])), ICON_WIDTH);
 var Close = styled.button(_templateObject3 || (_templateObject3 = _taggedTemplateLiteral(["\n  width: 10%;\n  background-color: ", ";\n  border: none;\n  position: absolute;\n  top: ", "px;\n  right: ", "px;\n  cursor: pointer;\n"])), colors.transparent, spaces.s, spaces.xxs);
 var CloseImg = styled.img(_templateObject4 || (_templateObject4 = _taggedTemplateLiteral(["\n  width: 100%;\n  max-width: ", ";\n"])), ICON_WIDTH);
 var Body = styled.div(_templateObject5 || (_templateObject5 = _taggedTemplateLiteral(["\n  width: 100%;\n  font-size: ", "px;\n  margin-left: ", "px;\n  align-self: flex-start;\n  word-break: break-word;\n"])), fontSizes.m, spaces.xl);
@@ -1653,25 +1653,51 @@ var useToastPortal = function useToastPortal() {
   };
 };
 
-var getPortalTextPosition = function getPortalTextPosition() {
-  var position = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'top-right';
-  return {
-    position: 'fixed',
-    left: position !== null && position !== void 0 && position.includes('left') ? "".concat(spaces.xs, "px") : null,
-    right: position !== null && position !== void 0 && position.includes('right') ? "".concat(spaces.xs, "px") : null,
-    top: position !== null && position !== void 0 && position.includes('top') ? "".concat(spaces.xs, "px") : null,
-    bottom: position !== null && position !== void 0 && position.includes('bottom') ? "".concat(spaces.xs, "px") : null,
-    zIndex: 1000
-  };
+var POSITION = {
+  TOP_RIGHT: 'top-right',
+  BOTTOM_RIGHT: 'bottom-right',
+  TOP_LEFT: 'top-left',
+  BOTTOM_LEFT: 'bottom-left'
+};
+var positions = [POSITION.TOP_RIGHT, POSITION.BOTTOM_RIGHT, POSITION.TOP_LEFT, POSITION.BOTTOM_LEFT];
+
+var getToastPosition = function getToastPosition(position) {
+  switch (position) {
+    case 'top-right':
+      return {
+        top: "".concat(spaces.xs, "px"),
+        right: "".concat(spaces.xs, "px")
+      };
+    case 'top-left':
+      return {
+        top: "".concat(spaces.xs, "px"),
+        left: "".concat(spaces.xs, "px")
+      };
+    case 'bottom-right':
+      return {
+        bottom: "".concat(spaces.xs, "px"),
+        right: "".concat(spaces.xs, "px")
+      };
+    case 'bottom-left':
+      return {
+        bottom: "".concat(spaces.xs, "px"),
+        left: "".concat(spaces.xs, "px")
+      };
+    default:
+      return {
+        top: "".concat(spaces.xs, "px"),
+        right: "".concat(spaces.xs, "px")
+      };
+  }
 };
 
-var _templateObject;
+var _templateObject, _templateObject2;
 var Container = styled.div(_templateObject || (_templateObject = _taggedTemplateLiteral(["\n  gap: ", ";\n  display: flex;\n  flex-direction: column;\n"])), spaces.xxs);
+var Wrapper = styled.div(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["\n  position: absolute;\n"])));
 
 function ToastList(_ref) {
   var toast = _ref.toast,
     toastList = _ref.toastList,
-    position = _ref.position,
     autoCloseTime = _ref.autoCloseTime;
   var _useState = r.useState(toastList),
     _useState2 = _slicedToArray(_useState, 2),
@@ -1687,16 +1713,19 @@ function ToastList(_ref) {
     setToasts(toast.removeToast(id));
   };
   useToastAutoClose(toasts, removeToast, autoCloseTime);
-  var positionStyle = getPortalTextPosition(position);
-  return loaded ? /*#__PURE__*/reactDom.createPortal( /*#__PURE__*/r.createElement("div", {
-    style: positionStyle
-  }, /*#__PURE__*/r.createElement(Container, null, toasts.map(function (t) {
-    return /*#__PURE__*/r.createElement(Toast$1, {
-      key: t.id,
-      toast: t,
-      onCloseToastClick: removeToast
-    });
-  }))), document.getElementById(portalId)) : null;
+  return loaded ? /*#__PURE__*/reactDom.createPortal( /*#__PURE__*/r.createElement(r.Fragment, null, positions.map(function (pos) {
+    return /*#__PURE__*/r.createElement(Wrapper, {
+      style: _objectSpread2({}, getToastPosition(pos))
+    }, /*#__PURE__*/r.createElement(Container, null, toasts.filter(function (t) {
+      return t.position === pos;
+    }).slice(0, 3).map(function (t) {
+      return /*#__PURE__*/r.createElement(Toast$1, {
+        key: t.id,
+        toast: t,
+        onCloseToastClick: removeToast
+      });
+    })));
+  })), document.getElementById(portalId)) : null;
 }
 var index = /*#__PURE__*/r.memo(ToastList);
 
@@ -1796,9 +1825,7 @@ var ToastSingletone = /*#__PURE__*/function () {
   }, {
     key: "addToast",
     value: function addToast(variant, properties) {
-      if (this.toasts.length < 3) {
-        this.toasts = [].concat(_toConsumableArray(this.toasts), [this.getToastProperties(variant, properties)]);
-      }
+      this.toasts = [].concat(_toConsumableArray(this.toasts), [this.getToastProperties(variant, properties)]);
     }
   }, {
     key: "getToasts",
