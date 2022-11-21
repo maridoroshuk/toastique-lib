@@ -8,6 +8,7 @@ const useToastPortal = () => {
   useLayoutEffect(() => {
     const div = document.createElement('div');
     div.id = portalId;
+
     document.getElementsByTagName('body')[0].prepend(div);
     setLoaded(true);
 
