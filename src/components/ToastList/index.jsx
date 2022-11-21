@@ -4,7 +4,9 @@ import PropTypes from 'prop-types';
 import Toast from '@/components/Toast';
 import useToastAutoClose from '@/hooks/useToastAutoClose';
 import useToastPortal from '@/hooks/useToastPortal';
-import { Container } from './styled';
+import { positions } from '@/constants/position';
+import getToastPosition from '@/shared/getToastPosition';
+import { Container, Wrapper } from './styled';
 
 function ToastList({ toast, toastList, autoCloseTime }) {
   const [toasts, setToasts] = useState(toastList);
@@ -22,23 +24,24 @@ function ToastList({ toast, toastList, autoCloseTime }) {
 
   return loaded
     ? createPortal(
-      <div
-        style={{
-          zIndex: 1000,
-          width: '100%',
-          height: '100%',
-        }}
-      >
-        <Container>
-          {toasts.map((t) => (
-            <Toast
-              key={t.id}
-              toast={t}
-              onCloseToastClick={removeToast}
-            />
-          ))}
-        </Container>
-      </div>,
+      <>
+        {positions.map((pos) => (
+          <Wrapper style={{ ...getToastPosition(pos) }}>
+            <Container>
+              {toasts
+                .filter((t) => t.position === pos)
+                .slice(0, 3)
+                .map((t) => (
+                  <Toast
+                    key={t.id}
+                    toast={t}
+                    onCloseToastClick={removeToast}
+                  />
+                ))}
+            </Container>
+          </Wrapper>
+        ))}
+      </>,
       document.getElementById(portalId),
     )
     : null;
