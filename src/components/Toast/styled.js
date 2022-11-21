@@ -20,8 +20,8 @@ const handleMarginType = (gap) => {
 
 export const Container = styled.div`
   width: ${WIDTH};
-  position: relative;
   display: flex;
+  position: relative;
   align-items: center;
   justify-content: flex-start;
   padding: ${spaces.s}px ${spaces.l}px;
