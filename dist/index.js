@@ -1545,7 +1545,8 @@ function Toast(_ref) {
 }
 var Toast$1 = /*#__PURE__*/r.memo(Toast);
 
-var useToastAutoClose = function useToastAutoClose(toasts, removeToast, autoCloseTime) {
+var useToastAutoClose = function useToastAutoClose(toasts, removeToast) {
+  var autoCloseTime = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 3000;
   var _useState = r.useState(''),
     _useState2 = _slicedToArray(_useState, 2),
     removing = _useState2[0],
@@ -1715,10 +1716,11 @@ function ToastList(_ref) {
   useToastAutoClose(toasts, removeToast, autoCloseTime);
   return loaded ? /*#__PURE__*/reactDom.createPortal( /*#__PURE__*/r.createElement(r.Fragment, null, positions.map(function (pos) {
     return /*#__PURE__*/r.createElement(Wrapper, {
+      key: pos,
       style: _objectSpread2({}, getToastPosition(pos))
     }, /*#__PURE__*/r.createElement(Container, null, toasts.filter(function (t) {
       return t.position === pos;
-    }).slice(0, 3).map(function (t) {
+    }).map(function (t) {
       return /*#__PURE__*/r.createElement(Toast$1, {
         key: t.id,
         toast: t,
@@ -1825,7 +1827,9 @@ var ToastSingletone = /*#__PURE__*/function () {
   }, {
     key: "addToast",
     value: function addToast(variant, properties) {
-      this.toasts = [].concat(_toConsumableArray(this.toasts), [this.getToastProperties(variant, properties)]);
+      if (this.toasts.length < 3) {
+        this.toasts = [].concat(_toConsumableArray(this.toasts), [this.getToastProperties(variant, properties)]);
+      }
     }
   }, {
     key: "getToasts",
