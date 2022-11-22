@@ -30,7 +30,6 @@ function ToastList({ toast, toastList, autoCloseTime }) {
             <Container>
               {toasts
                 .filter((t) => t.position === pos)
-                .slice(0, 3)
                 .map((t) => (
                   <Toast
                     key={t.id}

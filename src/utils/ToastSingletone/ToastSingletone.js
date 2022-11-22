@@ -44,10 +44,12 @@ class ToastSingletone {
   }
 
   addToast(variant, properties) {
-    this.toasts = [
-      ...this.toasts,
-      this.getToastProperties(variant, properties),
-    ];
+    if (this.toasts.length < 3) {
+      this.toasts = [
+        ...this.toasts,
+        this.getToastProperties(variant, properties),
+      ];
+    }
   }
 
   getToasts() {
