@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 const useToastAutoClose = (
   toasts,
   removeToast,
-  autoCloseTime,
+  autoCloseTime = 3000,
 ) => {
   const [removing, setRemoving] = useState('');
 
