@@ -26,7 +26,7 @@ function ToastList({ toast, toastList, autoCloseTime }) {
     ? createPortal(
       <>
         {positions.map((pos) => (
-          <Wrapper style={{ ...getToastPosition(pos) }}>
+          <Wrapper key={pos} style={{ ...getToastPosition(pos) }}>
             <Container>
               {toasts
                 .filter((t) => t.position === pos)

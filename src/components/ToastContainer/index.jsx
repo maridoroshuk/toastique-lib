@@ -6,7 +6,7 @@ import ToastList from '@/components/ToastList';
 
 function ToastContainer({ ...args }) {
   const [toastList, setToastList] = useState([]);
-  const { variant, position, autoCloseTime } = args;
+  const { variant, autoCloseTime } = args;
 
   const handleOnShow = () => {
     toast.addToast(variant, args);
@@ -17,7 +17,6 @@ function ToastContainer({ ...args }) {
       <ToastList
         toast={toast}
         toastList={toastList}
-        position={position}
         autoCloseTime={autoCloseTime}
       />
       <Button handleOnShow={handleOnShow} />
