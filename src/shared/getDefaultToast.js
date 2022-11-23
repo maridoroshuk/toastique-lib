@@ -5,6 +5,13 @@ import SUCCESS from '@/assets/success.png';
 import { TOASTS } from '@/constants/variants';
 import { toastColors } from '@/theme/colors';
 
+const commonProperties = {
+  position: 'top-right',
+  autoCloseTime: 5000,
+  animation: 'from bottom',
+  'space between toasts': 'medium',
+};
+
 const getDefaultToast = (toastVariant) => {
   switch (toastVariant) {
     case TOASTS.INFO:
@@ -13,10 +20,7 @@ const getDefaultToast = (toastVariant) => {
         heading: 'Info toast',
         content: 'Info toast description',
         color: `${toastColors.purple}`,
-        position: 'top-right',
-        autoCloseTime: 5000,
-        animation: 'from bottom',
-        'space between toasts': 'medium',
+        ...commonProperties,
       };
     case TOASTS.WARNING:
       return {
@@ -24,10 +28,7 @@ const getDefaultToast = (toastVariant) => {
         heading: 'Warning toast',
         content: 'Warning toast description',
         color: `${toastColors.yellow}`,
-        position: 'top-right',
-        autoCloseTime: 5000,
-        animation: 'from bottom',
-        'space between toasts': 'medium',
+        ...commonProperties,
       };
     case TOASTS.ERROR:
       return {
@@ -35,10 +36,7 @@ const getDefaultToast = (toastVariant) => {
         heading: 'Error toast',
         content: 'Error toast description',
         color: `${toastColors.tomato}`,
-        position: 'top-right',
-        autoCloseTime: 5000,
-        animation: 'from bottom',
-        'space between toasts': 'medium',
+        ...commonProperties,
       };
     case TOASTS.SUCCESS:
       return {
@@ -46,10 +44,7 @@ const getDefaultToast = (toastVariant) => {
         heading: 'Success toast',
         content: 'Success toast description',
         color: `${toastColors.green}`,
-        position: 'top-right',
-        autoCloseTime: 5000,
-        animation: 'from bottom',
-        'space between toasts': 'medium',
+        ...commonProperties,
       };
     default:
       return {};
