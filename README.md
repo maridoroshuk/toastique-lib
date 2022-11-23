@@ -17,24 +17,20 @@ import { toast, ToastList } from 'toastique-toast'
 
 function App() {
   const [toasts, setToasts] = useState([])
-  const [properties, setProperties] = useState({});
 
   const handleShowToast = () => {
-    setToasts(toast.getToasts('info', {
+    toast.addToast('success', {
       heading: "Wow",
-      content: "I'm an info toast!"
-    }))
-
-    setProperties({
-      position: "bottom-right",
-      autoCloseTime: 3000
+      content: "I'm an success toast!",
+      position: "bottom-left"
     })
+    setToasts(toast.getToasts())
   }
 
   return (
     <div>
       <button type='button' onClick={handleShowToast}>Show</button>
-      {toasts.length > 0 && <ToastList toast={toast} toastList={toasts} properties={properties}/>}
+      {toasts.length > 0 && <ToastList toast={toast} toastList={toasts}/>}
     </div>
   );
 }
@@ -58,4 +54,3 @@ export default App;
 | autoCloseTime | toast duration   | 5000        | Number    |           -              |
 | animation| toast appearance      |'from bottom'| String    |'from bottom' / from right side'|
 | 'space between toasts' | space beetween each toast | 'medium'    | String    | 'small' / 'medium' / 'large' |
-
