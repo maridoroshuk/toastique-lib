@@ -3,7 +3,7 @@ import WARNING from '@/assets/warning.png';
 import ERROR from '@/assets/error.png';
 import SUCCESS from '@/assets/success.png';
 import { TOASTS } from '@/constants/variants';
-import { toastColors } from '@/theme/colors';
+import { theme } from '@/theme';
 
 const commonProperties = {
   position: 'top-right',
@@ -19,7 +19,7 @@ const getDefaultToast = (toastVariant) => {
         icon: INFO,
         heading: 'Info toast',
         content: 'Info toast description',
-        color: `${toastColors.purple}`,
+        color: `${theme.toastColors.purple}`,
         ...commonProperties,
       };
     case TOASTS.WARNING:
@@ -27,7 +27,7 @@ const getDefaultToast = (toastVariant) => {
         icon: WARNING,
         heading: 'Warning toast',
         content: 'Warning toast description',
-        color: `${toastColors.yellow}`,
+        color: `${theme.toastColors.yellow}`,
         ...commonProperties,
       };
     case TOASTS.ERROR:
@@ -35,7 +35,7 @@ const getDefaultToast = (toastVariant) => {
         icon: ERROR,
         heading: 'Error toast',
         content: 'Error toast description',
-        color: `${toastColors.tomato}`,
+        color: `${theme.toastColors.tomato}`,
         ...commonProperties,
       };
     case TOASTS.SUCCESS:
@@ -43,7 +43,7 @@ const getDefaultToast = (toastVariant) => {
         icon: SUCCESS,
         heading: 'Success toast',
         content: 'Success toast description',
-        color: `${toastColors.green}`,
+        color: `${theme.toastColors.green}`,
         ...commonProperties,
       };
     default:

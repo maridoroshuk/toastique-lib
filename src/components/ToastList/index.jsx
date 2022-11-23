@@ -5,7 +5,7 @@ import Toast from '@/components/Toast';
 import useToastAutoClose from '@/hooks/useToastAutoClose';
 import useToastPortal from '@/hooks/useToastPortal';
 import { positions } from '@/constants/position';
-import getToastPosition from '@/shared/getToastPosition';
+import getToastPosition from '@/helpers/getToastPosition';
 import { Container, Wrapper } from './styled';
 
 function ToastList({ toast, toastList, autoCloseTime }) {

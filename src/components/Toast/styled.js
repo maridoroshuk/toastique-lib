@@ -1,22 +1,7 @@
 import styled from 'styled-components';
 import { TOASTS } from '@/constants/variants';
-import { GAP } from '@/constants/gap';
-import { colors } from '@/theme/colors';
-import { fontSizes, spaces } from '@/theme/sizes';
 import { WIDTH, ICON_WIDTH } from '@/constants/toastSizes';
-
-const handleMarginType = (gap) => {
-  switch (gap) {
-    case GAP.SMALL:
-      return `${spaces.xxs}px`;
-    case GAP.MEDIUM:
-      return `${spaces.s}px`;
-    case GAP.LARGE:
-      return `${spaces.xl}px`;
-    default:
-      return `${spaces.s}px`;
-  }
-};
+import getSpaceBetweenToasts from '@/helpers/getSpaceBetweenToasts';
 
 export const Container = styled.div`
   width: ${WIDTH};
@@ -25,13 +10,13 @@ export const Container = styled.div`
   position: relative;
   align-items: center;
   justify-content: flex-start;
-  padding: ${spaces.s}px ${spaces.l}px;
-  margin-bottom: ${({ gap }) => handleMarginType(gap)};
-  color: ${({ variant }) => (variant === TOASTS.WARNING
-    ? `${colors.black}`
-    : `${colors.white}`)};
+  padding: ${({ theme: { spaces } }) => `${spaces.s}px ${spaces.l}px`};
+  margin-bottom: ${({ gap }) => getSpaceBetweenToasts(gap)};
+  color: ${({ variant, theme: { colors } }) => (variant === TOASTS.WARNING
+    ? colors.black
+    : colors.white)};
   background-color: ${({ color }) => color};
-  border-radius: ${spaces.l}px;
+  border-radius: ${({ theme: { spaces } }) => `${spaces.l}px`};
   box-sizing: border-box;
   transition: 0.2s;
   font-family: sans-serif;
@@ -44,11 +29,11 @@ export const Icon = styled.img`
 
 export const Close = styled.button`
   width: 10%;
-  background-color: ${colors.transparent};
+  background-color: ${({ theme: { colors } }) => colors.transparent};
   border: none;
   position: absolute;
-  top: ${spaces.s}px;
-  right: ${spaces.xxs}px;
+  top: ${({ theme: { spaces } }) => `${spaces.s}px`};
+  right: ${({ theme: { spaces } }) => `${spaces.xxs}px`};
   cursor: pointer;
 `;
 
@@ -59,8 +44,8 @@ export const CloseImg = styled.img`
 
 export const Body = styled.div`
   width: 100%;
-  font-size: ${fontSizes.m}px;
-  margin-left: ${spaces.xl}px;
+  font-size: ${({ theme: { fontSizes } }) => `${fontSizes.m}px`};
+  margin-left: ${({ theme: { spaces } }) => `${spaces.xl}px`};
   align-self: flex-start;
   word-break: break-word;
 `;

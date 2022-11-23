@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { ThemeProvider } from 'styled-components';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Button from '@/components/Button';
 import toast from '@/utils/ToastSingletone/ToastSingletone';
 import ToastList from '@/components/ToastList';
+import { theme } from '@/theme';
 
 function ToastContainer({ ...args }) {
   const [toastList, setToastList] = useState([]);
@@ -13,14 +15,16 @@ function ToastContainer({ ...args }) {
     setToastList(toast.getToasts());
   };
   return (
-    <ErrorBoundary>
-      <ToastList
-        toast={toast}
-        toastList={toastList}
-        autoCloseTime={autoCloseTime}
-      />
-      <Button handleOnShow={handleOnShow} />
-    </ErrorBoundary>
+    <ThemeProvider theme={theme}>
+      <ErrorBoundary>
+        <ToastList
+          toast={toast}
+          toastList={toastList}
+          autoCloseTime={autoCloseTime}
+        />
+        <Button handleOnShow={handleOnShow} />
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 }
 

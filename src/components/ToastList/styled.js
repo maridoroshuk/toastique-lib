@@ -1,8 +1,7 @@
 import styled from 'styled-components';
-import { spaces } from '@/theme/sizes';
 
 export const Container = styled.div`
-  gap: ${spaces.xxs};
+  gap: ${({ theme: { spaces } }) => `${spaces.xxs}px`};
   display: flex;
   flex-direction: column;
 `;

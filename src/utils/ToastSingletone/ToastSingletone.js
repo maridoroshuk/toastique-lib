@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import getDefaultToast from '@/shared/getDefaultToast';
+import getDefaultToast from '@/helpers/getDefaultToast';
 
 class ToastSingletone {
   constructor() {
