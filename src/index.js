@@ -1,4 +1,4 @@
 import ToastList from './components/ToastList';
-import toast from './utils/ToastSingletone/ToastSingletone';
+import toast from './utils/toastSingletone';
 
 export { toast, ToastList };

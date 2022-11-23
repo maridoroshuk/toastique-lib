@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ThemeProvider } from 'styled-components';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Button from '@/components/Button';
-import toast from '@/utils/ToastSingletone/ToastSingletone';
+import toast from '@/utils/toastSingletone';
 import ToastList from '@/components/ToastList';
 import { theme } from '@/theme';
 
